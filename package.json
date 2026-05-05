@@ -1,0 +1,17 @@
+{
+  "name": "newcode",
+  "private": true,
+  "packageManager": "bun@1.3.13",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "bun run --cwd ./apps/server dev",
+    "dev:cli": "bun run --cwd ./apps/cli dev",
+    "build:server": "bun run --cwd ./apps/server build",
+    "build:cli": "bun run --cwd ./apps/cli build",
+    "check:server": "bun run --cwd ./apps/server check",
+    "check:cli": "bun run --cwd ./apps/cli check"
+  }
+}
