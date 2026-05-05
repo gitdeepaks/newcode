@@ -25,3 +25,9 @@
 ## TypeScript Quirks
 - CLI TSX depends on `apps/cli/tsconfig.json`: JSX uses `"@opentui/react"` as `jsxImportSource`.
 - App TypeScript uses Bun globals (`types: ["bun"]`) and bundler module resolution.
+
+## Commit Format
+- Use Conventional Commits: `<type>(<scope>): <message>`
+- Example: `feat(cli): implement React Router navigation with OpenTUI integration`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+- Scope: `cli`, `server`, `shared`, or `root` for repo-wide changes
