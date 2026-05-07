@@ -16,11 +16,14 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.177",
     "@newcode/shared": "workspace:*",
     "@opentui/core": "^0.2.1",
     "@opentui/react": "^0.2.1",
+    "ai": "^6.0.175",
     "hono": "^4.12.17",
     "react": "^19.2.4",
-    "react-router": "^7.14.2"
+    "react-router": "^7.14.2",
+    "zod": "^4.4.3"
   }
 }

@@ -7,9 +7,17 @@
 - `apps/cli/README.md` is scaffold boilerplate; trust `package.json` scripts over that README.
 
 ## App Boundaries
-- `apps/server/src/index.ts` is the entire server entrypoint: a Hono app served with `Bun.serve()`, defaulting to `PORT=3000`, with `/` and `/health` routes.
+- `apps/server/src/index.ts` is the server entrypoint: it serves the Hono app from `apps/server/src/app.ts` with `Bun.serve()`, defaulting to `PORT=3000`.
 - `apps/cli/src/index.tsx` is the CLI entrypoint: keep it focused on renderer/root setup and route to screen components from there.
 - There are no shared workspace packages yet, so keep changes app-local unless you are intentionally introducing shared code.
+
+## API Requests
+- When the CLI calls the server, prefer the typed Hono RPC client in `apps/cli/src/lib/client.ts` over raw `fetch` whenever possible.
+- When an API consumer needs a URL string instead of making the RPC request directly, use the Hono RPC `.$url()` helper from the typed client, e.g. `client["ai-test"].$url().toString()`, rather than manually concatenating server URLs and paths.
+- Keep server routes chained in `apps/server/src/app.ts` and export `AppType` from the chained route value so the CLI RPC client can infer request and response types.
+- For Hono request body validation, prefer `zValidator` from `@hono/zod-validator` with a Zod schema over manual `c.req.json()` parsing, `hono/validator` casts, or ad hoc `unknown` object checks.
+- For client-side object parsing, prefer Zod schemas over manual `typeof`/`in` checks. This includes route state, search params, local storage payloads, and external data before rendering or branching on it.
+- Use raw `fetch` only for external services or endpoints that cannot reasonably use the Hono RPC client, and keep that exception local and explicit.
 
 ## File Structure
 - Use kebab-case for source filenames (`home-screen.tsx`, `prompt-text-area.tsx`), not PascalCase filenames.

@@ -12,8 +12,12 @@
     "check": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.75",
+    "@hono/zod-validator": "^0.7.6",
     "@newcode/shared": "workspace:*",
-    "hono": "^4.10.0"
+    "ai": "^6.0.175",
+    "hono": "^4.10.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
