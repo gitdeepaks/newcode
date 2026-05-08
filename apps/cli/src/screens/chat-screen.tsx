@@ -1,14 +1,18 @@
 import { useChat } from "@ai-sdk/react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import type { ChatUIMessage } from "@newcode/server/app";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { z } from "zod";
+import {
+  ChatErrorMessage,
+  ChatMessage,
+} from "../components/chat/chat-message";
 import { KeyCap } from "../components/key-cap";
 import { PromptTextArea } from "../components/prompt-text-area";
 import { StatusBar } from "../components/status-bar";
 import { client } from "../lib/client";
-import { getMarkdownSyntaxStyle } from "../lib/markdown-style";
 import { theme } from "../lib/theme";
 
 const chatLocationStateSchema = z.object({
@@ -34,8 +38,8 @@ export function ChatScreen() {
     }
   });
 
-  const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({
+  const { messages, sendMessage, status, error } = useChat<ChatUIMessage>({
+    transport: new DefaultChatTransport<ChatUIMessage>({
       api: client.chat.$url().toString(),
     }),
   });
@@ -102,27 +106,22 @@ export function ChatScreen() {
             <box width={contentWidth} flexDirection="column" gap={1}>
               {messages.length === 0 && !isBusy ? <EmptyState /> : null}
 
-              {messages.map((message) => {
-                const text = message.parts
-                  .map((part) => (part.type === "text" ? part.text : ""))
-                  .join("");
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  width={contentWidth}
+                  streaming={
+                    isStreaming && message === messages[messages.length - 1]
+                  }
+                />
+              ))}
 
-                return (
-                  <MessageBubble
-                    key={message.id}
-                    role={message.role === "user" ? "user" : "assistant"}
-                    content={text}
-                    width={contentWidth}
-                    streaming={
-                      isStreaming && message === messages[messages.length - 1]
-                    }
-                  />
-                );
-              })}
+              {error ? (
+                <ChatErrorMessage error={error} width={contentWidth} />
+              ) : null}
 
               {status === "submitted" ? <ThinkingIndicator /> : null}
-
-              {error ? <ErrorPanel message={error.message} /> : null}
             </box>
           </box>
         </box>
@@ -134,6 +133,7 @@ export function ChatScreen() {
         paddingX={2}
         paddingY={1}
         backgroundColor={theme.bg}
+        flexShrink={0}
       >
         <PromptTextArea
           width={composerWidth}
@@ -224,90 +224,12 @@ function EmptyState() {
   );
 }
 
-type MessageBubbleProps = {
-  role: "user" | "assistant";
-  content: string;
-  width: number;
-  streaming?: boolean;
-};
-
-function MessageBubble({
-  role,
-  content,
-  width,
-  streaming,
-}: MessageBubbleProps) {
-  const isUser = role === "user";
-  const stripeColor = isUser ? theme.accent : theme.success;
-  const label = isUser ? "You" : "Assistant";
-  const labelColor = isUser ? theme.accent : theme.success;
-  const bubbleBg = isUser ? theme.surfaceMuted : theme.surface;
-  const innerWidth = Math.max(10, width - 3);
-
-  return (
-    <box flexDirection="column" gap={0} width={width}>
-      <text>
-        <span fg={labelColor}>
-          <strong>{label}</strong>
-        </span>
-      </text>
-      <box
-        border={["left"]}
-        borderColor={stripeColor}
-        backgroundColor={bubbleBg}
-        paddingX={2}
-        paddingY={0}
-        flexDirection="column"
-        width={width}
-      >
-        {isUser ? (
-          <text fg={theme.text} selectable>
-            {content || " "}
-          </text>
-        ) : (
-          <markdown
-            content={content || " "}
-            syntaxStyle={getMarkdownSyntaxStyle()}
-            fg={theme.text}
-            streaming={streaming}
-            width={innerWidth}
-            tableOptions={{
-              borderStyle: "rounded",
-              borderColor: theme.border,
-              wrapMode: "word",
-            }}
-          />
-        )}
-      </box>
-    </box>
-  );
-}
-
 function ThinkingIndicator() {
   return (
     <box flexDirection="row" alignItems="center" gap={1} paddingX={1}>
       <text>
         <span fg={theme.accent}>●</span>
         <span fg={theme.textMuted}> thinking…</span>
-      </text>
-    </box>
-  );
-}
-
-function ErrorPanel({ message }: { message: string }) {
-  return (
-    <box
-      border
-      borderStyle="rounded"
-      borderColor={theme.danger}
-      backgroundColor={theme.surface}
-      paddingX={2}
-      paddingY={1}
-      title=" Error "
-      titleAlignment="left"
-    >
-      <text fg={theme.danger} selectable>
-        {message}
       </text>
     </box>
   );
