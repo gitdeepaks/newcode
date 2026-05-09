@@ -58,12 +58,13 @@ export function ChatScreen() {
       return;
     }
 
+    const id = sessionId;
     let cancelled = false;
     setHydrated(false);
 
     async function hydrateMessages() {
       const res = await client.sessions[":id"].messages.$get({
-        param: { id: sessionId },
+        param: { id },
       });
       if (cancelled) return;
 

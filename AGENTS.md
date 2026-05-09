@@ -28,6 +28,16 @@
 ## Code Style
 - Do not use IIFEs (e.g. `(async () => { ... })()`). Define a named function and call it normally instead — it reads better in stack traces, is easier to debug, and keeps intent obvious. This applies especially to async work inside `useEffect`.
 
+## Building Features & Scaling
+- This stack is Hono RPC (server) + OpenTUI/React (CLI) + AI SDK (chat/agents). Whenever you add features, refactor, or scale any part of the project, consult the relevant skills first and prefer their idiomatic patterns over ad-hoc solutions:
+  - `hono` skill — for routes, middleware, validation (`zValidator`), streaming, and the RPC client. We rely on Hono RPC for end-to-end types between server and CLI.
+  - `opentui` skill — for any CLI/TUI work: components, layout, keyboard handling, the React reconciler, animations.
+  - `ai-sdk` skill — for `streamText`, `useChat`, tool calling, structured output, providers, and chat transports.
+- End-to-end type safety is non-negotiable. The chain is: Zod schemas validate inputs → chained Hono routes export `AppType` → `hc<AppType>` in `apps/cli/src/lib/client.ts` infers request/response types → CLI consumers use those inferred types directly. Do not break that chain.
+  - Do not weaken types with `any`, `as unknown as T`, non-null `!`, or `?? ""`/`?? 0` fallbacks just to silence errors. If TypeScript complains, fix the underlying shape (narrow with a guard, capture into a `const`, add a Zod schema, or fix the route).
+  - Never bypass the typed RPC client with raw `fetch` to a hardcoded path — that severs inference. The only exception is genuinely external services, kept local and explicit (see API Requests).
+  - Run `bun run check:cli` and `bun run check:server` before declaring a feature done; both must be clean.
+
 ## Verification
 - No CI workflows, pre-commit hooks, linters, formatters, or test files are present in this repo.
 - The practical verification path is typecheck then build for the touched app: `bun run check:server && bun run build:server` or `bun run check:cli && bun run build:cli`.
