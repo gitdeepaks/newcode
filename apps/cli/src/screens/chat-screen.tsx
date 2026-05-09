@@ -2,9 +2,8 @@ import { useChat } from "@ai-sdk/react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import type { ChatUIMessage } from "@newcode/server/app";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useRef } from "react";
-import { useLocation, useNavigate } from "react-router";
-import { z } from "zod";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import {
   ChatErrorMessage,
   ChatMessage,
@@ -14,10 +13,7 @@ import { PromptTextArea } from "../components/prompt-text-area";
 import { StatusBar } from "../components/status-bar";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
-
-const chatLocationStateSchema = z.object({
-  prompt: z.string().catch(""),
-});
+import { chatLocationStateSchema } from "../routes/state";
 
 const MAX_CONTENT_WIDTH = 96;
 const MAX_COMPOSER_WIDTH = 82;
@@ -26,11 +22,13 @@ const HORIZONTAL_PADDING = 4;
 export function ChatScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: sessionId } = useParams<{ id: string }>();
   const { width } = useTerminalDimensions();
   const { prompt } = chatLocationStateSchema
     .catch({ prompt: "" })
     .parse(location.state);
   const initialPromptRef = useRef<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useKeyboard((key) => {
     if (key.name === "escape") {
@@ -38,20 +36,72 @@ export function ChatScreen() {
     }
   });
 
-  const { messages, sendMessage, status, error } = useChat<ChatUIMessage>({
-    transport: new DefaultChatTransport<ChatUIMessage>({
-      api: client.chat.$url().toString(),
-    }),
-  });
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<ChatUIMessage>({
+        api: client.chat[":sessionId"]
+          .$url({ param: { sessionId: sessionId ?? "" } })
+          .toString(),
+      }),
+    [sessionId],
+  );
+
+  const { messages, sendMessage, setMessages, status, error } =
+    useChat<ChatUIMessage>({
+      id: sessionId,
+      transport,
+    });
 
   useEffect(() => {
-    if (!prompt || initialPromptRef.current === prompt) {
+    if (!sessionId) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    setHydrated(false);
+
+    async function hydrateMessages() {
+      const res = await client.sessions[":id"].messages.$get({
+        param: { id: sessionId },
+      });
+      if (cancelled) return;
+
+      if (res.status === 404) {
+        navigate("/", { replace: true });
+        return;
+      }
+      if (!res.ok) {
+        setHydrated(true);
+        return;
+      }
+
+      const data = await res.json();
+      if (cancelled) return;
+      setMessages(data.messages as ChatUIMessage[]);
+      setHydrated(true);
+    }
+
+    void hydrateMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, navigate, setMessages]);
+
+  useEffect(() => {
+    if (!hydrated || !prompt || initialPromptRef.current === prompt) {
+      return;
+    }
+    if (messages.length > 0) {
+      // History exists — don't replay the navigation prompt.
+      initialPromptRef.current = prompt;
       return;
     }
 
     initialPromptRef.current = prompt;
     void sendMessage({ text: prompt });
-  }, [prompt, sendMessage]);
+  }, [hydrated, prompt, messages.length, sendMessage]);
 
   const isBusy = status === "submitted" || status === "streaming";
   const isStreaming = status === "streaming";
@@ -84,7 +134,7 @@ export function ChatScreen() {
 
   return (
     <box flexDirection="column" flexGrow={1}>
-      <ChatHeader messageCount={messages.length} />
+      <ChatHeader messageCount={messages.length} sessionId={sessionId} />
 
       <scrollbox
         flexGrow={1}
@@ -138,7 +188,7 @@ export function ChatScreen() {
         <PromptTextArea
           width={composerWidth}
           clearOnSubmit
-          disabled={isBusy}
+          disabled={isBusy || !hydrated}
           onSubmitPrompt={(text) => {
             void sendMessage({ text });
           }}
@@ -172,7 +222,13 @@ export function ChatScreen() {
   );
 }
 
-function ChatHeader({ messageCount }: { messageCount: number }) {
+function ChatHeader({
+  messageCount,
+  sessionId,
+}: {
+  messageCount: number;
+  sessionId: string | undefined;
+}) {
   return (
     <box
       border={["bottom"]}
@@ -188,7 +244,9 @@ function ChatHeader({ messageCount }: { messageCount: number }) {
         <span fg={theme.text}>
           <strong>Chat</strong>
         </span>
-        <span fg={theme.textMuted}> · session</span>
+        <span fg={theme.textMuted}>
+          {sessionId ? ` · ${sessionId.slice(0, 8)}` : " · session"}
+        </span>
       </text>
       <text>
         <span fg={theme.textMuted}>{messageCount} </span>

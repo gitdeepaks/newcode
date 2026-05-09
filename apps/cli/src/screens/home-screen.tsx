@@ -1,9 +1,12 @@
 import { useTerminalDimensions } from "@opentui/react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { KeyCap } from "../components/key-cap";
 import { PromptTextArea } from "../components/prompt-text-area";
 import { StatusBar } from "../components/status-bar";
+import { client } from "../lib/client";
 import { theme } from "../lib/theme";
+import type { ChatLocationState } from "../routes/state";
 
 const MAX_CONTENT_WIDTH = 82;
 const HORIZONTAL_PADDING = 4;
@@ -11,11 +14,32 @@ const HORIZONTAL_PADDING = 4;
 export function HomeScreen() {
   const navigate = useNavigate();
   const { width } = useTerminalDimensions();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const contentWidth = Math.max(
     32,
     Math.min(MAX_CONTENT_WIDTH, width - HORIZONTAL_PADDING),
   );
+
+  const handleSubmitPrompt = async (prompt: string) => {
+    setPending(true);
+    setError(null);
+    try {
+      const res = await client.sessions.$post();
+      if (!res.ok) {
+        setError(`Failed to create session (${res.status})`);
+        return;
+      }
+      const { id } = await res.json();
+      const state: ChatLocationState = { prompt };
+      navigate(`/sessions/${id}`, { state });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <box flexDirection="column" flexGrow={1}>
@@ -47,10 +71,17 @@ export function HomeScreen() {
 
           <PromptTextArea
             width={contentWidth}
-            onSubmitPrompt={(prompt) =>
-              navigate("/chat", { state: { prompt } })
-            }
+            disabled={pending}
+            onSubmitPrompt={(prompt) => {
+              void handleSubmitPrompt(prompt);
+            }}
           />
+
+          {error ? (
+            <text>
+              <span fg={theme.danger}>{error}</span>
+            </text>
+          ) : null}
 
           <box
             width={contentWidth}

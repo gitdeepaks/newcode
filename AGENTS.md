@@ -25,6 +25,9 @@
 - Keep CLI screens and UI components separated: screens belong in `apps/cli/src/screens`, reusable components belong in `apps/cli/src/components`.
 - Do not bury reusable components inside screen folders; only keep code screen-local when it is truly private to that screen.
 
+## Code Style
+- Do not use IIFEs (e.g. `(async () => { ... })()`). Define a named function and call it normally instead — it reads better in stack traces, is easier to debug, and keeps intent obvious. This applies especially to async work inside `useEffect`.
+
 ## Verification
 - No CI workflows, pre-commit hooks, linters, formatters, or test files are present in this repo.
 - The practical verification path is typecheck then build for the touched app: `bun run check:server && bun run build:server` or `bun run check:cli && bun run build:cli`.

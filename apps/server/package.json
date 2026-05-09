@@ -6,14 +6,15 @@
     "./app": "./src/app.ts"
   },
   "scripts": {
-    "dev": "bun --watch run src/index.ts",
-    "start": "bun run src/index.ts",
+    "dev": "bun --env-file=../../.env --watch run src/index.ts",
+    "start": "bun --env-file=../../.env run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "check": "bunx tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.75",
     "@hono/zod-validator": "^0.7.6",
+    "@newcode/db": "workspace:*",
     "@newcode/shared": "workspace:*",
     "ai": "^6.0.175",
     "hono": "^4.10.0",
