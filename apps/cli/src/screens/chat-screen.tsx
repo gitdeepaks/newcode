@@ -1,7 +1,10 @@
 import { useChat } from "@ai-sdk/react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import type { ChatUIMessage } from "@newcode/server/app";
-import { DefaultChatTransport } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import {
@@ -11,9 +14,13 @@ import {
 import { KeyCap } from "../components/key-cap";
 import { PromptTextArea } from "../components/prompt-text-area";
 import { StatusBar } from "../components/status-bar";
+import { createRunTool } from "@newcode/tools/runtime";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
+import { workspaceRoot } from "../lib/workspace-root";
 import { chatLocationStateSchema } from "../routes/state";
+
+const runTool = createRunTool({ workspaceRoot });
 
 const MAX_CONTENT_WIDTH = 96;
 const MAX_COMPOSER_WIDTH = 82;
@@ -46,10 +53,33 @@ export function ChatScreen() {
     [sessionId],
   );
 
-  const { messages, sendMessage, setMessages, status, error } =
+  const { messages, sendMessage, setMessages, status, error, addToolOutput } =
     useChat<ChatUIMessage>({
       id: sessionId,
       transport,
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      async onToolCall({ toolCall }) {
+        // Required for type narrowing per AI SDK docs — without this,
+        // toolCall.toolName widens to string and addToolOutput rejects it.
+        if (toolCall.dynamic) return;
+
+        try {
+          const output = await runTool(toolCall.toolName, toolCall.input);
+          // No await — avoids potential deadlocks per AI SDK guidance.
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output,
+          });
+        } catch (err) {
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            state: "output-error",
+            errorText: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
     });
 
   useEffect(() => {

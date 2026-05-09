@@ -10,6 +10,7 @@
       "dependencies": {
         "@ai-sdk/react": "^3.0.177",
         "@newcode/shared": "workspace:*",
+        "@newcode/tools": "workspace:*",
         "@opentui/core": "^0.2.1",
         "@opentui/react": "^0.2.1",
         "ai": "^6.0.175",
@@ -32,6 +33,7 @@
         "@hono/zod-validator": "^0.7.6",
         "@newcode/db": "workspace:*",
         "@newcode/shared": "workspace:*",
+        "@newcode/tools": "workspace:*",
         "ai": "^6.0.175",
         "hono": "^4.10.0",
         "zod": "^4.4.3",
@@ -58,6 +60,17 @@
     },
     "packages/shared": {
       "name": "@newcode/shared",
+    },
+    "packages/tools": {
+      "name": "@newcode/tools",
+      "dependencies": {
+        "ai": "^6.0.175",
+        "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+      },
     },
   },
   "packages": {
@@ -90,6 +103,8 @@
     "@newcode/server": ["@newcode/server@workspace:apps/server"],
 
     "@newcode/shared": ["@newcode/shared@workspace:packages/shared"],
+
+    "@newcode/tools": ["@newcode/tools@workspace:packages/tools"],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
