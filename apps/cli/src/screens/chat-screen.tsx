@@ -3,11 +3,12 @@ import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
-  validateUIMessages,
   type ChatAddToolOutputFunction,
 } from "ai";
-import { tools } from "newcode-ai";
-import { createOnToolCall } from "newcode-ai/client";
+import {
+  createOnToolCall,
+  validateCodingAgentMessages,
+} from "newcode-ai/client";
 import type { CodingAgentUIMessage } from "newcode-ai/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
@@ -111,13 +112,10 @@ export function ChatScreen() {
       const data = await res.json();
       if (cancelled) return;
       // Hono RPC widens the message union over JSON, so we narrow back to
-      // `CodingAgentUIMessage[]` by re-validating with the same tool schemas
-      // the server used on write. No casts needed — the validator's return
-      // type carries the right shape.
-      const messages = await validateUIMessages<CodingAgentUIMessage>({
-        messages: data.messages,
-        tools,
-      });
+      // `CodingAgentUIMessage[]` through the AI package's client helper.
+      const messages = await validateCodingAgentMessages<CodingAgentUIMessage>(
+        data.messages,
+      );
       if (cancelled) return;
       setMessages(messages);
       setHydrated(true);

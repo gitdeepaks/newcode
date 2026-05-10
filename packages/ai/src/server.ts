@@ -1,7 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { InferAgentUIMessage, ToolLoopAgent, stepCountIs } from "ai";
 import { instructions } from "./instructions";
-import { tools } from "./tools/schemas";
+import { tools } from "./tools/registry";
 
 // Single hardcoded model for now. When the app goes multi-model, this becomes
 // per-request (request body or session config) and is what we persist on the
@@ -15,10 +15,9 @@ export const codingAgent = new ToolLoopAgent({
   model: anthropic(CODING_AGENT_MODEL_ID),
   // Anthropic counts max_tokens as a reservation against the per-minute
   // input-token rate limit, so leaving it at the model default (128k)
-  // guarantees a 429 on small accounts. 4096 keeps the per-step
-  // reservation small enough that a multi-step tool loop fits inside a
-  // 30k ITPM budget.
-  maxOutputTokens: 4096,
+  // guarantees a 429 on small accounts. Keep this low so multi-step tool
+  // loops still fit inside a 30k ITPM budget on small Anthropic accounts.
+  maxOutputTokens: 1024,
   // 429s come back with retry-after headers around 100s. Default
   // maxRetries (2) blocks the request for 3+ minutes for an error the
   // user can fix in seconds — fail fast instead.
@@ -28,7 +27,7 @@ export const codingAgent = new ToolLoopAgent({
   stopWhen: stepCountIs(10),
   providerOptions: {
     anthropic: {
-      thinking: { type: "enabled", budgetTokens: 1024 },
+      thinking: { type: "disabled" },
     },
   },
 });

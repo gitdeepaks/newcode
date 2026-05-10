@@ -20,14 +20,14 @@ import type {
   ReadFileOutput,
   WriteFileInput,
   WriteFileOutput,
-} from "./schemas";
+} from "./specs";
 
 // read_file ------------------------------------------------------------------
 
 // Tight defaults to keep multi-step loops inside the 30k ITPM budget. Model
 // can request more via offset/limit when it actually needs the rest.
-const READ_DEFAULT_LIMIT = 200;
-const READ_MAX_BYTES = 16 * 1024;
+const READ_DEFAULT_LIMIT = 120;
+const READ_MAX_BYTES = 6 * 1024;
 
 export async function readFile(
   workspaceRoot: string,
@@ -121,7 +121,10 @@ export async function listDirectory(
   if (input.recursive) {
     const queue: string[] = [root];
     while (queue.length > 0 && entries.length < LIST_MAX_ENTRIES) {
-      const dir = queue.shift() as string;
+      const dir = queue.shift();
+      if (dir === undefined) {
+        break;
+      }
       const dirents = await readdir(dir, { withFileTypes: true });
       for (const dirent of dirents) {
         if (entries.length >= LIST_MAX_ENTRIES) {

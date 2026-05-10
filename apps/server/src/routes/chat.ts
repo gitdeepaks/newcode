@@ -5,7 +5,12 @@ import {
   prisma,
   toJsonPayload,
 } from "@newcode/db";
-import { createAgentUIStreamResponse, generateId, safeValidateUIMessages } from "ai";
+import {
+  convertToModelMessages,
+  generateId,
+  pruneMessages,
+  safeValidateUIMessages,
+} from "ai";
 import { Hono } from "hono";
 import {
   CODING_AGENT_MODEL_ID,
@@ -18,6 +23,8 @@ const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
   messages: z.array(z.unknown()).min(1),
 });
+
+const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
 
 export const chatRoutes = new Hono().post(
   "/:sessionId",
@@ -90,21 +97,29 @@ export const chatRoutes = new Hono().post(
       },
     });
 
-    return createAgentUIStreamResponse({
-      agent: codingAgent,
-      uiMessages: validation.data,
+    const modelMessages = await convertToModelMessages(validation.data, {
+      tools: codingAgent.tools,
+    });
+    const prunedModelMessages = pruneMessages({
+      messages: modelMessages,
+      reasoning: "all",
+      toolCalls: "before-last-2-messages",
+    }).slice(-AGENT_CONTEXT_MAX_MODEL_MESSAGES);
+
+    const result = await codingAgent.stream({
+      prompt: prunedModelMessages,
+    });
+
+    return result.toUIMessageStreamResponse({
       headers: {
         "Cache-Control": "no-cache",
       },
-      sendReasoning: true,
+      originalMessages: validation.data,
+      sendReasoning: false,
       generateMessageId: generateId,
       onFinish: async ({ responseMessage, isAborted, finishReason }) => {
-        // `createAgentUIStreamResponse` defaults `originalMessages` to the
-        // messages we sent in, so when the client posts back with a prior
-        // assistant turn (sendAutomaticallyWhen-driven tool roundtrips), the
-        // agent helper reuses that assistant message id and extends it. We
-        // upsert keyed on id so the first roundtrip inserts and subsequent
-        // ones update the same row with the appended content.
+        // Preserve the original UI messages for id reuse on automatic tool
+        // roundtrips, but prune older model history before the next LLM call.
         await prisma.message.upsert({
           where: { id: responseMessage.id },
           create: {

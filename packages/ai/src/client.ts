@@ -4,49 +4,19 @@ import type {
   ChatOnToolCallCallback,
   UIMessage,
 } from "ai";
-import type { z } from "zod";
-import {
-  toolInputSchemas,
-  toolOutputSchemas,
-  type ToolName,
-} from "./tools/schemas";
-import {
-  bash,
-  editFile,
-  grep,
-  listDirectory,
-  readFile,
-  writeFile,
-} from "./tools/runners";
+import { validateUIMessages } from "ai";
+import type { ToolOutput } from "./tools/definition";
+import { toolHandlers, tools } from "./tools/registry";
+import { isToolName, toolSpecs, type ToolName } from "./tools/specs";
 
 export { resolveWithinWorkspace } from "./workspace";
 export { bash, editFile, grep, listDirectory, readFile, writeFile } from "./tools/runners";
 
-type ToolInput<T extends ToolName> = z.infer<(typeof toolInputSchemas)[T]>;
-type ToolOutput<T extends ToolName> = z.infer<(typeof toolOutputSchemas)[T]>;
-
-type Executors = {
-  [K in ToolName]: (
-    workspaceRoot: string,
-    input: ToolInput<K>,
-  ) => Promise<ToolOutput<K>>;
-};
-
-const executors: Executors = {
-  read_file: readFile,
-  write_file: writeFile,
-  edit_file: editFile,
-  list_directory: listDirectory,
-  grep,
-  bash,
-};
-
-function isToolName(name: string): name is ToolName {
-  return name in executors;
-}
-
 export type RunTool = {
-  <T extends ToolName>(name: T, input: unknown): Promise<ToolOutput<T>>;
+  <T extends ToolName>(
+    name: T,
+    input: unknown,
+  ): Promise<ToolOutput<(typeof toolSpecs)[T]>>;
   (name: string, input: unknown): Promise<unknown>;
 };
 
@@ -60,20 +30,30 @@ export function createRunTool({
 }): RunTool {
   const root = realpathSync(workspaceRoot);
 
+  function runTool<T extends ToolName>(
+    name: T,
+    input: unknown,
+  ): Promise<ToolOutput<(typeof toolSpecs)[T]>>;
+  function runTool(name: string, input: unknown): Promise<unknown>;
   async function runTool(name: string, input: unknown): Promise<unknown> {
     if (!isToolName(name)) {
       throw new Error(`Unknown tool: ${name}`);
     }
-    const parsedInput = toolInputSchemas[name].parse(input);
-    const executor = executors[name] as (
-      r: string,
-      i: unknown,
-    ) => Promise<unknown>;
-    const output = await executor(root, parsedInput);
-    return toolOutputSchemas[name].parse(output);
+
+    return toolHandlers[name](root, input);
   }
 
-  return runTool as RunTool;
+  return runTool;
+}
+
+export async function validateCodingAgentMessages<UI_MESSAGE extends UIMessage>(
+  messages: unknown[],
+): Promise<UI_MESSAGE[]> {
+  if (messages.length === 0) {
+    return [];
+  }
+
+  return validateUIMessages<UI_MESSAGE>({ messages, tools });
 }
 
 // Factory for `useChat`'s `onToolCall`. `addToolOutput` only exists *after*
