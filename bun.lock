@@ -10,11 +10,11 @@
       "dependencies": {
         "@ai-sdk/react": "^3.0.177",
         "@newcode/shared": "workspace:*",
-        "@newcode/tools": "workspace:*",
         "@opentui/core": "^0.2.1",
         "@opentui/react": "^0.2.1",
         "ai": "^6.0.175",
         "hono": "^4.12.17",
+        "newcode-ai": "workspace:*",
         "react": "^19.2.4",
         "react-router": "^7.14.2",
         "zod": "^4.4.3",
@@ -33,9 +33,21 @@
         "@hono/zod-validator": "^0.7.6",
         "@newcode/db": "workspace:*",
         "@newcode/shared": "workspace:*",
-        "@newcode/tools": "workspace:*",
         "ai": "^6.0.175",
         "hono": "^4.10.0",
+        "newcode-ai": "workspace:*",
+        "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/ai": {
+      "name": "newcode-ai",
+      "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.75",
+        "ai": "^6.0.175",
         "zod": "^4.4.3",
       },
       "devDependencies": {
@@ -60,17 +72,6 @@
     },
     "packages/shared": {
       "name": "@newcode/shared",
-    },
-    "packages/tools": {
-      "name": "@newcode/tools",
-      "dependencies": {
-        "ai": "^6.0.175",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "^5.9.3",
-      },
     },
   },
   "packages": {
@@ -103,8 +104,6 @@
     "@newcode/server": ["@newcode/server@workspace:apps/server"],
 
     "@newcode/shared": ["@newcode/shared@workspace:packages/shared"],
-
-    "@newcode/tools": ["@newcode/tools@workspace:packages/tools"],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
@@ -281,6 +280,8 @@
     "mysql2": ["mysql2@3.15.3", "", { "dependencies": { "aws-ssl-profiles": "^1.1.1", "denque": "^2.1.0", "generate-function": "^2.3.1", "iconv-lite": "^0.7.0", "long": "^5.2.1", "lru.min": "^1.0.0", "named-placeholders": "^1.1.3", "seq-queue": "^0.0.5", "sqlstring": "^2.3.2" } }, "sha512-FBrGau0IXmuqg4haEZRBfHNWB5mUARw6hNwPDXXGg0XzVJ50mr/9hb267lvpVMnhZ1FON3qNd4Xfcez1rbFwSg=="],
 
     "named-placeholders": ["named-placeholders@1.1.6", "", { "dependencies": { "lru.min": "^1.1.0" } }, "sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w=="],
+
+    "newcode-ai": ["newcode-ai@workspace:packages/ai"],
 
     "ohash": ["ohash@2.0.11", "", {}, "sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ=="],
 

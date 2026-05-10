@@ -1,10 +1,14 @@
 import { useChat } from "@ai-sdk/react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import type { ChatUIMessage } from "@newcode/server/app";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
+  validateUIMessages,
+  type ChatAddToolOutputFunction,
 } from "ai";
+import { tools } from "newcode-ai";
+import { createOnToolCall } from "newcode-ai/client";
+import type { CodingAgentUIMessage } from "newcode-ai/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import {
@@ -14,13 +18,10 @@ import {
 import { KeyCap } from "../components/key-cap";
 import { PromptTextArea } from "../components/prompt-text-area";
 import { StatusBar } from "../components/status-bar";
-import { createRunTool } from "@newcode/tools/runtime";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
 import { workspaceRoot } from "../lib/workspace-root";
 import { chatLocationStateSchema } from "../routes/state";
-
-const runTool = createRunTool({ workspaceRoot });
 
 const MAX_CONTENT_WIDTH = 96;
 const MAX_COMPOSER_WIDTH = 82;
@@ -45,7 +46,7 @@ export function ChatScreen() {
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport<ChatUIMessage>({
+      new DefaultChatTransport<CodingAgentUIMessage>({
         api: client.chat[":sessionId"]
           .$url({ param: { sessionId: sessionId ?? "" } })
           .toString(),
@@ -53,34 +54,34 @@ export function ChatScreen() {
     [sessionId],
   );
 
+  // `onToolCall` runs every time the agent calls a tool, but `addToolOutput`
+  // is returned by the same `useChat` we're configuring — so we wire them
+  // through a ref. The factory captures the ref's getter; the assignment
+  // below keeps the ref pointed at the latest `addToolOutput`.
+  const addToolOutputRef =
+    useRef<ChatAddToolOutputFunction<CodingAgentUIMessage> | null>(null);
+  const onToolCall = useMemo(
+    () =>
+      createOnToolCall<CodingAgentUIMessage>({
+        workspaceRoot,
+        getAddToolOutput: () => {
+          const fn = addToolOutputRef.current;
+          if (!fn) throw new Error("addToolOutput not bound yet");
+          return fn;
+        },
+      }),
+    [],
+  );
+
   const { messages, sendMessage, setMessages, status, error, addToolOutput } =
-    useChat<ChatUIMessage>({
+    useChat<CodingAgentUIMessage>({
       id: sessionId,
       transport,
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-      async onToolCall({ toolCall }) {
-        // Required for type narrowing per AI SDK docs — without this,
-        // toolCall.toolName widens to string and addToolOutput rejects it.
-        if (toolCall.dynamic) return;
-
-        try {
-          const output = await runTool(toolCall.toolName, toolCall.input);
-          // No await — avoids potential deadlocks per AI SDK guidance.
-          addToolOutput({
-            tool: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            output,
-          });
-        } catch (err) {
-          addToolOutput({
-            tool: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            state: "output-error",
-            errorText: err instanceof Error ? err.message : String(err),
-          });
-        }
-      },
+      onToolCall,
     });
+
+  addToolOutputRef.current = addToolOutput;
 
   useEffect(() => {
     if (!sessionId) {
@@ -109,7 +110,16 @@ export function ChatScreen() {
 
       const data = await res.json();
       if (cancelled) return;
-      setMessages(data.messages as ChatUIMessage[]);
+      // Hono RPC widens the message union over JSON, so we narrow back to
+      // `CodingAgentUIMessage[]` by re-validating with the same tool schemas
+      // the server used on write. No casts needed — the validator's return
+      // type carries the right shape.
+      const messages = await validateUIMessages<CodingAgentUIMessage>({
+        messages: data.messages,
+        tools,
+      });
+      if (cancelled) return;
+      setMessages(messages);
       setHydrated(true);
     }
 

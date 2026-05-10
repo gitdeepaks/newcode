@@ -8,4 +8,3 @@ const routes = new Hono()
 
 export const app = routes;
 export type AppType = typeof routes;
-export type { ChatUIMessage } from "./routes/chat";

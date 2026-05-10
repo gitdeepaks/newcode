@@ -1,18 +1,18 @@
 import { zValidator } from "@hono/zod-validator";
-import { MessageRole, SessionEventKind, prisma } from "@newcode/db";
+import {
+  MessageRole,
+  SessionEventKind,
+  prisma,
+  toJsonPayload,
+} from "@newcode/db";
 import { createAgentUIStreamResponse, generateId, safeValidateUIMessages } from "ai";
 import { Hono } from "hono";
-import { z } from "zod";
 import {
   CODING_AGENT_MODEL_ID,
-  type ChatUIMessage,
+  type CodingAgentUIMessage,
   codingAgent,
-} from "../agents/coding-agent";
-
-// Re-export so existing CLI imports (`@newcode/server/app`) keep resolving
-// the same symbol — agent definition is the single source of truth, this
-// just keeps the existing public boundary intact.
-export type { ChatUIMessage } from "../agents/coding-agent";
+} from "newcode-ai/server";
+import { z } from "zod";
 
 const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
@@ -47,7 +47,7 @@ export const chatRoutes = new Hono().post(
       return c.json({ error: "Session not found" }, 404);
     }
 
-    const validation = await safeValidateUIMessages<ChatUIMessage>({
+    const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
       messages,
       tools: codingAgent.tools,
     });
@@ -76,7 +76,7 @@ export const chatRoutes = new Hono().post(
           id: lastMessage.id,
           sessionId: session.id,
           role: MessageRole.user,
-          payload: lastMessage as unknown as object,
+          payload: toJsonPayload(lastMessage),
         },
         update: {},
       });
@@ -112,11 +112,11 @@ export const chatRoutes = new Hono().post(
             sessionId: session.id,
             role: MessageRole.assistant,
             model: CODING_AGENT_MODEL_ID,
-            payload: responseMessage as unknown as object,
+            payload: toJsonPayload(responseMessage),
           },
           update: {
             model: CODING_AGENT_MODEL_ID,
-            payload: responseMessage as unknown as object,
+            payload: toJsonPayload(responseMessage),
           },
         });
         await prisma.sessionEvent.create({

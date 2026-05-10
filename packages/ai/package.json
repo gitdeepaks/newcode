@@ -1,12 +1,14 @@
 {
-  "name": "@newcode/tools",
+  "name": "newcode-ai",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./runtime": "./src/runtime.ts"
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.75",
     "ai": "^6.0.175",
     "zod": "^4.4.3"
   },
