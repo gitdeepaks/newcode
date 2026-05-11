@@ -12,18 +12,19 @@ import {
   safeValidateUIMessages,
 } from "ai";
 import { Hono } from "hono";
-import { DEFAULT_MODE, allCodingTools, modeSchema } from "newcode-ai";
+import { allCodingTools, modeSchema } from "newcode-ai";
 import {
   CODING_AGENT_MODEL_ID,
   type CodingAgentUIMessage,
   createCodingAgent,
 } from "newcode-ai/server";
 import { z } from "zod";
+import { toDbMode } from "../lib/mode-mapping";
 
 const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
   messages: z.array(z.unknown()).min(1),
-  mode: modeSchema.default(DEFAULT_MODE),
+  mode: modeSchema,
 });
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
@@ -87,6 +88,7 @@ export const chatRoutes = new Hono().post(
           id: lastMessage.id,
           sessionId: session.id,
           role: MessageRole.user,
+          mode: toDbMode(mode),
           payload: toJsonPayload(lastMessage),
         },
         update: {},
@@ -132,6 +134,7 @@ export const chatRoutes = new Hono().post(
             id: responseMessage.id,
             sessionId: session.id,
             role: MessageRole.assistant,
+            mode: toDbMode(mode),
             model: CODING_AGENT_MODEL_ID,
             payload: toJsonPayload(responseMessage),
           },

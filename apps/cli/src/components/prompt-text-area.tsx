@@ -1,9 +1,13 @@
 import type { TextareaRenderable } from "@opentui/core";
+import { getModeConfig, type Mode } from "newcode-ai";
 import { useRef } from "react";
 import { z } from "zod";
+import { getModeColor } from "../lib/mode-style";
 import { theme } from "../lib/theme";
 
 const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0);
+
+const promptBackground = "#1E1E1E";
 
 type PromptTextAreaProps = {
   onSubmitPrompt?: (prompt: string) => void;
@@ -11,7 +15,7 @@ type PromptTextAreaProps = {
   disabled?: boolean;
   width?: number;
   placeholder?: string;
-  modeLabel?: string;
+  mode?: Mode;
 };
 
 export function PromptTextArea({
@@ -20,7 +24,7 @@ export function PromptTextArea({
   disabled = false,
   width = 82,
   placeholder = "Ask anything…",
-  modeLabel,
+  mode,
 }: PromptTextAreaProps) {
   const textareaRef = useRef<TextareaRenderable>(null);
 
@@ -42,18 +46,20 @@ export function PromptTextArea({
     onSubmitPrompt?.(parsedPrompt.data);
   };
 
-  const borderColor = disabled ? theme.borderSubtle : theme.border;
+  const modeColor = mode ? getModeColor(mode) : theme.accent;
+  const borderColor = disabled ? theme.borderSubtle : modeColor;
+  const modeLabel = mode ? getModeConfig(mode).label : undefined;
 
   return (
     <box width={width} flexDirection="column" flexShrink={0}>
       <box
-        border
-        borderStyle="rounded"
+        border={["left"]}
         borderColor={borderColor}
-        backgroundColor={theme.bg}
+        backgroundColor={promptBackground}
         paddingX={1}
-        paddingY={0}
+        paddingY={1}
         flexDirection="column"
+        gap={1}
       >
         <textarea
           ref={textareaRef}
@@ -66,31 +72,22 @@ export function PromptTextArea({
             { name: "return", shift: true, action: "newline" },
           ]}
           wrapMode="word"
-          backgroundColor={theme.bg}
-          focusedBackgroundColor={theme.bg}
+          backgroundColor={promptBackground}
+          focusedBackgroundColor={promptBackground}
           textColor={theme.text}
           focusedTextColor={theme.text}
           placeholderColor={theme.textMuted}
           cursorColor={theme.cursor}
           selectionBg={theme.selection}
         />
-      </box>
 
-      <box paddingX={1}>
-        <text>
-          <span fg={theme.textMuted}>↵ send</span>
-          <span fg={theme.borderSubtle}> · </span>
-          <span fg={theme.textMuted}>⇧↵ newline</span>
-          <span fg={theme.borderSubtle}> · </span>
-          <span fg={theme.textMuted}>tab cycle</span>
-          {modeLabel ? (
-            <>
-              <span fg={theme.borderSubtle}> · </span>
-              <span fg={theme.textMuted}>mode: </span>
-              <span fg={theme.accentSoft}>{modeLabel}</span>
-            </>
-          ) : null}
-        </text>
+        {modeLabel ? (
+          <box paddingX={1}>
+            <text>
+              <span fg={modeColor}>{modeLabel}</span>
+            </text>
+          </box>
+        ) : null}
       </box>
     </box>
   );

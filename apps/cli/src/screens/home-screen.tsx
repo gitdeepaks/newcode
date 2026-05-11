@@ -1,15 +1,14 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { DEFAULT_MODE, getModeConfig, getNextMode, type Mode } from "newcode-ai";
+import { DEFAULT_MODE, getNextMode, type Mode } from "newcode-ai";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { KeyCap } from "../components/key-cap";
 import { PromptTextArea } from "../components/prompt-text-area";
-import { StatusBar } from "../components/status-bar";
+
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
 import type { ChatLocationState } from "../routes/state";
 
-const MAX_CONTENT_WIDTH = 82;
+const MAX_CONTENT_WIDTH = 94;
 const HORIZONTAL_PADDING = 4;
 
 export function HomeScreen() {
@@ -71,25 +70,18 @@ export function HomeScreen() {
           flexDirection="column"
           alignItems="center"
           width={contentWidth}
-          gap={1}
+          gap={2}
         >
-          <box flexDirection="row" alignItems="flex-end">
-            <ascii-font text="new" font="tiny" color={theme.textMuted} />
+          <box flexDirection="row" alignItems="flex-end" gap={1}>
+            <ascii-font text="new" font="tiny" color="#808080" />
             <ascii-font text="code" font="tiny" color={theme.text} />
           </box>
-
-          <text>
-            <span fg={theme.textSecondary}>Local </span>
-            <span fg={theme.accent}>AI</span>
-            <span fg={theme.textSecondary}> coding agent for your terminal</span>
-          </text>
-
-          <box height={1} />
 
           <PromptTextArea
             width={contentWidth}
             disabled={pending}
-            modeLabel={getModeConfig(mode).label}
+            placeholder="Press Enter to open chat…"
+            mode={mode}
             onSubmitPrompt={(prompt) => {
               void handleSubmitPrompt(prompt);
             }}
@@ -100,65 +92,8 @@ export function HomeScreen() {
               <span fg={theme.danger}>{error}</span>
             </text>
           ) : null}
-
-          <box
-            width={contentWidth}
-            flexDirection="row"
-            justifyContent="space-between"
-            alignItems="center"
-            paddingX={1}
-          >
-            <text>
-              <span fg={theme.textMuted}>Press </span>
-            </text>
-            <box flexDirection="row" alignItems="center" gap={1}>
-              <KeyCap label="tab" />
-              <text fg={theme.textMuted}>modes</text>
-              <text fg={theme.borderSubtle}>·</text>
-              <KeyCap label="^p" />
-              <text fg={theme.textMuted}>commands</text>
-            </box>
-          </box>
-
-          <box height={1} />
-
-          <box
-            width={contentWidth}
-            border
-            borderStyle="rounded"
-            borderColor={theme.border}
-            title=" Tip "
-            titleAlignment="left"
-            backgroundColor={theme.surface}
-            paddingX={2}
-            paddingY={1}
-          >
-            <text>
-              <span fg={theme.textSecondary}>Set </span>
-              <span fg={theme.text}>&quot;formatter&quot;: false</span>
-              <span fg={theme.textSecondary}>
-                {" "}
-                in config to disable all auto-formatting.
-              </span>
-            </text>
-          </box>
         </box>
       </box>
-
-      <StatusBar
-        left={
-          <text>
-            <span fg={theme.textMuted}>~/Builds/newcode</span>
-            <span fg={theme.borderSubtle}>:</span>
-            <span fg={theme.accentSoft}>master</span>
-          </text>
-        }
-        right={
-          <text>
-            <span fg={theme.textMuted}>v1.14.41</span>
-          </text>
-        }
-      />
     </box>
   );
 }

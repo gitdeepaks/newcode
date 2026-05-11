@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { prisma } from "@newcode/db";
 import { Hono } from "hono";
 import { z } from "zod";
+import { fromDbMode } from "../lib/mode-mapping";
 
 const sessionParamSchema = z.object({ id: z.string().min(1) });
 
@@ -30,6 +31,11 @@ export const sessionRoutes = new Hono()
       // `safeValidateUIMessages`, so they're already valid `CodingAgentUIMessage`
       // shapes. The CLI re-validates on receipt — that's where the typed
       // narrowing lands (Hono RPC's JSON serialization widens the union).
-      return c.json({ messages: records.map((m) => m.payload) });
+      return c.json({
+        messages: records.map((m) => ({
+          mode: fromDbMode(m.mode),
+          payload: m.payload,
+        })),
+      });
     },
   );

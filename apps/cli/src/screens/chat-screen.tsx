@@ -5,7 +5,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type ChatAddToolOutputFunction,
 } from "ai";
-import { DEFAULT_MODE, getModeConfig, getNextMode, type Mode } from "newcode-ai";
+import { DEFAULT_MODE, getNextMode, type Mode } from "newcode-ai";
 import {
   createOnToolCall,
   validateCodingAgentMessages,
@@ -13,38 +13,38 @@ import {
 import type { CodingAgentUIMessage } from "newcode-ai/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
-import {
-  ChatErrorMessage,
-  ChatMessage,
-} from "../components/chat/chat-message";
-import { KeyCap } from "../components/key-cap";
+import { ChatErrorMessage, ChatMessage } from "../components/chat/chat-message";
 import { PromptTextArea } from "../components/prompt-text-area";
-import { StatusBar } from "../components/status-bar";
+
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
 import { workspaceRoot } from "../lib/workspace-root";
 import { chatLocationStateSchema } from "../routes/state";
 
-const MAX_CONTENT_WIDTH = 96;
-const MAX_COMPOSER_WIDTH = 82;
+const MAX_CONTENT_WIDTH = 120;
+const MAX_COMPOSER_WIDTH = 120;
 const HORIZONTAL_PADDING = 4;
 
 export function ChatScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id: sessionId } = useParams<{ id: string }>();
-  const { width } = useTerminalDimensions();
-  const { prompt, mode: routeMode } = chatLocationStateSchema.parse(location.state);
+  const { width, height } = useTerminalDimensions();
+  const routeState = chatLocationStateSchema.parse(location.state);
   const initialPromptRef = useRef<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [mode, setMode] = useState<Mode>(routeMode ?? DEFAULT_MODE);
+  const [mode, setMode] = useState<Mode>(routeState.mode);
+  const [messageModes, setMessageModes] = useState(
+    () => new Map<string, Mode>(),
+  );
   const modeRef = useRef(mode);
+  const pendingMessageModeRef = useRef<Mode | null>(null);
 
   modeRef.current = mode;
 
   useEffect(() => {
-    setMode(routeMode);
-  }, [routeMode, sessionId]);
+    setMode(routeState.mode);
+  }, [routeState.mode, sessionId]);
 
   useKeyboard((key) => {
     if (key.name === "escape") {
@@ -110,6 +110,11 @@ export function ChatScreen() {
 
   addToolOutputRef.current = addToolOutput;
 
+  function submitPrompt(text: string) {
+    pendingMessageModeRef.current = modeRef.current;
+    void sendMessage({ text });
+  }
+
   useEffect(() => {
     if (!sessionId) {
       navigate("/", { replace: true });
@@ -140,10 +145,18 @@ export function ChatScreen() {
       // Hono RPC widens the message union over JSON, so we narrow back to
       // `CodingAgentUIMessage[]` through the AI package's client helper.
       const messages = await validateCodingAgentMessages<CodingAgentUIMessage>(
-        data.messages,
+        data.messages.map((message) => message.payload),
       );
       if (cancelled) return;
       setMessages(messages);
+      setMessageModes(
+        new Map(
+          messages.map((message, index) => [
+            message.id,
+            data.messages[index]?.mode ?? DEFAULT_MODE,
+          ]),
+        ),
+      );
       setHydrated(true);
     }
 
@@ -155,18 +168,42 @@ export function ChatScreen() {
   }, [sessionId, navigate, setMessages]);
 
   useEffect(() => {
-    if (!hydrated || !prompt || initialPromptRef.current === prompt) {
+    if (messages.every((message) => messageModes.has(message.id))) {
+      return;
+    }
+
+    setMessageModes((currentModes) => {
+      const nextModes = new Map(currentModes);
+      for (const message of messages) {
+        if (!nextModes.has(message.id)) {
+          nextModes.set(
+            message.id,
+            pendingMessageModeRef.current ?? modeRef.current,
+          );
+        }
+      }
+      pendingMessageModeRef.current = null;
+      return nextModes;
+    });
+  }, [messages, messageModes]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !routeState.prompt ||
+      initialPromptRef.current === routeState.prompt
+    ) {
       return;
     }
     if (messages.length > 0) {
       // History exists — don't replay the navigation prompt.
-      initialPromptRef.current = prompt;
+      initialPromptRef.current = routeState.prompt;
       return;
     }
 
-    initialPromptRef.current = prompt;
-    void sendMessage({ text: prompt });
-  }, [hydrated, prompt, messages.length, sendMessage]);
+    initialPromptRef.current = routeState.prompt;
+    submitPrompt(routeState.prompt);
+  }, [hydrated, routeState.prompt, messages.length, submitPrompt]);
 
   const isBusy = status === "submitted" || status === "streaming";
   const isStreaming = status === "streaming";
@@ -179,6 +216,7 @@ export function ChatScreen() {
     32,
     Math.min(MAX_COMPOSER_WIDTH, width - HORIZONTAL_PADDING),
   );
+  const chatViewportHeight = Math.max(1, height - 8);
 
   const scrollboxStyle = useMemo(
     () => ({
@@ -190,7 +228,7 @@ export function ChatScreen() {
         showArrows: false,
         trackOptions: {
           foregroundColor: theme.scrollTrackFg,
-          backgroundColor: theme.scrollTrackBg,
+          backgroundColor: theme.bg,
         },
       },
     }),
@@ -199,45 +237,37 @@ export function ChatScreen() {
 
   return (
     <box flexDirection="column" flexGrow={1}>
-      <ChatHeader messageCount={messages.length} sessionId={sessionId} />
-
       <scrollbox
-        flexGrow={1}
+        height={chatViewportHeight}
         flexDirection="column"
         stickyScroll
         stickyStart="bottom"
         style={scrollboxStyle}
       >
-        <box flexDirection="column" flexGrow={1}>
-          {/* Pushes content to the bottom when it doesn't overflow. */}
-          <box flexGrow={1} />
+        <box
+          flexDirection="row"
+          justifyContent="center"
+          paddingX={2}
+          paddingY={1}
+        >
+          <box width={contentWidth} flexDirection="column" gap={2}>
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                width={contentWidth}
+                mode={messageModes.get(message.id) ?? mode}
+                streaming={
+                  isStreaming && message === messages[messages.length - 1]
+                }
+              />
+            ))}
 
-          <box
-            flexDirection="row"
-            justifyContent="center"
-            paddingX={2}
-            paddingY={1}
-          >
-            <box width={contentWidth} flexDirection="column" gap={1}>
-              {messages.length === 0 && !isBusy ? <EmptyState /> : null}
+            {error ? (
+              <ChatErrorMessage error={error} width={contentWidth} />
+            ) : null}
 
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  width={contentWidth}
-                  streaming={
-                    isStreaming && message === messages[messages.length - 1]
-                  }
-                />
-              ))}
-
-              {error ? (
-                <ChatErrorMessage error={error} width={contentWidth} />
-              ) : null}
-
-              {status === "submitted" ? <ThinkingIndicator /> : null}
-            </box>
+            {status === "submitted" ? <ThinkingIndicator /> : null}
           </box>
         </box>
       </scrollbox>
@@ -254,96 +284,13 @@ export function ChatScreen() {
           width={composerWidth}
           clearOnSubmit
           disabled={isBusy || !hydrated}
-          modeLabel={getModeConfig(mode).label}
+          placeholder="Send a message…"
+          mode={mode}
           onSubmitPrompt={(text) => {
-            void sendMessage({ text });
+            submitPrompt(text);
           }}
         />
       </box>
-
-      <StatusBar
-        left={
-          <>
-            <KeyCap label="esc" />
-            <text fg={theme.textMuted}>home</text>
-          </>
-        }
-        right={
-          <text>
-            <span fg={theme.textMuted}>
-              {messages.length} message{messages.length === 1 ? "" : "s"}
-            </span>
-            {isBusy ? (
-              <>
-                <span fg={theme.borderSubtle}> · </span>
-                <span fg={theme.accent}>
-                  {status === "submitted" ? "thinking" : "streaming"}
-                </span>
-              </>
-            ) : null}
-          </text>
-        }
-      />
-    </box>
-  );
-}
-
-function ChatHeader({
-  messageCount,
-  sessionId,
-}: {
-  messageCount: number;
-  sessionId: string | undefined;
-}) {
-  return (
-    <box
-      border={["bottom"]}
-      borderColor={theme.borderSubtle}
-      backgroundColor={theme.surface}
-      paddingX={2}
-      height={2}
-      flexDirection="row"
-      alignItems="center"
-      justifyContent="space-between"
-    >
-      <text>
-        <span fg={theme.text}>
-          <strong>Chat</strong>
-        </span>
-        <span fg={theme.textMuted}>
-          {sessionId ? ` · ${sessionId.slice(0, 8)}` : " · session"}
-        </span>
-      </text>
-      <text>
-        <span fg={theme.textMuted}>{messageCount} </span>
-        <span fg={theme.textMuted}>turns</span>
-      </text>
-    </box>
-  );
-}
-
-function EmptyState() {
-  return (
-    <box
-      border
-      borderStyle="rounded"
-      borderColor={theme.border}
-      backgroundColor={theme.surface}
-      paddingX={2}
-      paddingY={1}
-      flexDirection="column"
-      gap={1}
-    >
-      <text>
-        <span fg={theme.textSecondary}>No messages yet.</span>
-      </text>
-      <text>
-        <span fg={theme.textMuted}>Type below to start, or press </span>
-        <span fg={theme.text} bg={theme.surfaceMuted}>
-          {" esc "}
-        </span>
-        <span fg={theme.textMuted}> to go home.</span>
-      </text>
     </box>
   );
 }

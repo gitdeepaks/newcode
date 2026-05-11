@@ -23,6 +23,7 @@ model Message {
   id        String      @id
   sessionId String
   role      MessageRole
+  mode      Mode
   model     String?
   payload   Json
   createdAt DateTime    @default(now())
@@ -49,6 +50,11 @@ enum MessageRole {
   user
   assistant
   system
+}
+
+enum Mode {
+  build
+  plan
 }
 
 enum SessionEventKind {

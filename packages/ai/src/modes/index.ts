@@ -50,7 +50,11 @@ export const modeRegistry = defineModeRegistry([
         "Limit yourself to inspection, analysis, and concrete next-step recommendations.",
       ],
     },
-    allowedTools: ["read_file", "list_directory", "grep"] satisfies readonly ToolName[],
+    allowedTools: [
+      "read_file",
+      "list_directory",
+      "grep",
+    ] satisfies readonly ToolName[],
   },
 ] as const);
 

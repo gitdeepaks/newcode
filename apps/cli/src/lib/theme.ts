@@ -5,7 +5,7 @@
  * GitHub Dark palette so terminals with a similar background blend in.
  */
 export const theme = {
-  bg: "#0d1117",
+  bg: "#0A0A0A",
   surface: "#161b22",
   surfaceMuted: "#1c2128",
 

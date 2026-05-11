@@ -9,7 +9,9 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from "ai";
+import type { Mode } from "newcode-ai";
 import { getMarkdownSyntaxStyle } from "../../lib/markdown-style";
+import { getModeColor } from "../../lib/mode-style";
 import { theme } from "../../lib/theme";
 
 type AnyUIMessagePart = UIMessage["parts"][number];
@@ -17,6 +19,7 @@ type AnyUIMessagePart = UIMessage["parts"][number];
 type ChatMessageProps = {
   message: UIMessage;
   width: number;
+  mode: Mode;
   streaming?: boolean;
 };
 
@@ -51,38 +54,44 @@ export function ChatErrorMessage({
   );
 }
 
-export function ChatMessage({ message, width, streaming }: ChatMessageProps) {
+export function ChatMessage({ message, width, mode, streaming }: ChatMessageProps) {
   const isUser = message.role === "user";
-  const stripeColor = isUser ? theme.accent : theme.success;
-  const labelColor = stripeColor;
-  const label = isUser ? "You" : "Assistant";
-  const bubbleBg = isUser ? theme.surfaceMuted : theme.surface;
+  const modeColor = getModeColor(mode);
+  const parts = message.parts.map((part, index) => (
+    <MessagePart
+      // Parts have no stable id; index is fine because order is append-only.
+      key={index}
+      part={part}
+      role={message.role}
+      streaming={streaming === true}
+    />
+  ));
+
+  if (!isUser) {
+    return (
+      <box flexDirection="column" width={width} gap={0}>
+        <text>
+          <span fg="#8B5CF6">
+            <strong>Assistant</strong>
+          </span>
+        </text>
+        {parts}
+      </box>
+    );
+  }
 
   return (
     <box flexDirection="column" width={width}>
-      <text>
-        <span fg={labelColor}>
-          <strong>{label}</strong>
-        </span>
-      </text>
       <box
         border={["left"]}
-        borderColor={stripeColor}
-        backgroundColor={bubbleBg}
+        borderColor={modeColor}
+        backgroundColor="#1E1E1E"
         paddingX={2}
-        paddingY={0}
+        paddingY={1}
         flexDirection="column"
         gap={1}
       >
-        {message.parts.map((part, index) => (
-          <MessagePart
-            // Parts have no stable id; index is fine because order is append-only.
-            key={index}
-            part={part}
-            role={message.role}
-            streaming={streaming === true}
-          />
-        ))}
+        {parts}
       </box>
     </box>
   );
