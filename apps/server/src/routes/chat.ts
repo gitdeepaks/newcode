@@ -12,16 +12,18 @@ import {
   safeValidateUIMessages,
 } from "ai";
 import { Hono } from "hono";
+import { DEFAULT_MODE, allCodingTools, modeSchema } from "newcode-ai";
 import {
   CODING_AGENT_MODEL_ID,
   type CodingAgentUIMessage,
-  codingAgent,
+  createCodingAgent,
 } from "newcode-ai/server";
 import { z } from "zod";
 
 const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
   messages: z.array(z.unknown()).min(1),
+  mode: modeSchema.default(DEFAULT_MODE),
 });
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
@@ -32,7 +34,7 @@ export const chatRoutes = new Hono().post(
   zValidator("json", chatRequestSchema),
   async (c) => {
     const { sessionId } = c.req.valid("param");
-    const { messages } = c.req.valid("json");
+    const { messages, mode } = c.req.valid("json");
 
     if (!process.env.ANTHROPIC_API_KEY) {
       await prisma.sessionEvent.create({
@@ -56,7 +58,7 @@ export const chatRoutes = new Hono().post(
 
     const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
       messages,
-      tools: codingAgent.tools,
+      tools: allCodingTools,
     });
     if (!validation.success) {
       await prisma.sessionEvent.create({
@@ -71,6 +73,8 @@ export const chatRoutes = new Hono().post(
         400,
       );
     }
+
+    const agent = createCodingAgent(mode);
 
     // Persist only the tail of the messages array — the rest is prior history
     // already written on previous turns. Upsert keyed by UIMessage.id so a
@@ -97,8 +101,10 @@ export const chatRoutes = new Hono().post(
       },
     });
 
+    // History can span multiple modes, so validate and convert it against the
+    // full tool universe even when the active turn uses a narrower mode.
     const modelMessages = await convertToModelMessages(validation.data, {
-      tools: codingAgent.tools,
+      tools: allCodingTools,
     });
     const prunedModelMessages = pruneMessages({
       messages: modelMessages,
@@ -106,7 +112,7 @@ export const chatRoutes = new Hono().post(
       toolCalls: "before-last-2-messages",
     }).slice(-AGENT_CONTEXT_MAX_MODEL_MESSAGES);
 
-    const result = await codingAgent.stream({
+    const result = await agent.stream({
       prompt: prunedModelMessages,
     });
 

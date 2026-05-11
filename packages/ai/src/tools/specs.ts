@@ -55,6 +55,24 @@ export const writeFileOutput = z.object({
 export type WriteFileInput = z.infer<typeof writeFileInput>;
 export type WriteFileOutput = z.infer<typeof writeFileOutput>;
 
+// delete_file ----------------------------------------------------------------
+
+export const deleteFileInput = z.object({
+  path: z
+    .string()
+    .min(1)
+    .describe(
+      "Path to the file to delete, relative to the workspace root or absolute. Must resolve inside the workspace.",
+    ),
+});
+
+export const deleteFileOutput = z.object({
+  deleted: z.literal(true),
+});
+
+export type DeleteFileInput = z.infer<typeof deleteFileInput>;
+export type DeleteFileOutput = z.infer<typeof deleteFileOutput>;
+
 // edit_file ------------------------------------------------------------------
 
 export const editFileInput = z.object({
@@ -195,6 +213,12 @@ export const toolSpecs = {
       "Write a file inside the workspace, creating parent directories if needed. Overwrites existing files. Prefer `edit_file` for small changes to large files.",
     inputSchema: writeFileInput,
     outputSchema: writeFileOutput,
+  },
+  delete_file: {
+    description:
+      "Delete a file inside the workspace. This only removes files or symlinks; it does not remove directories.",
+    inputSchema: deleteFileInput,
+    outputSchema: deleteFileOutput,
   },
   edit_file: {
     description:

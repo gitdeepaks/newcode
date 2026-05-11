@@ -1,4 +1,5 @@
-import { useTerminalDimensions } from "@opentui/react";
+import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import { DEFAULT_MODE, getModeConfig, getNextMode, type Mode } from "newcode-ai";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { KeyCap } from "../components/key-cap";
@@ -14,8 +15,24 @@ const HORIZONTAL_PADDING = 4;
 export function HomeScreen() {
   const navigate = useNavigate();
   const { width } = useTerminalDimensions();
+  const [mode, setMode] = useState<Mode>(DEFAULT_MODE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useKeyboard((key) => {
+    if (
+      pending ||
+      key.name !== "tab" ||
+      key.shift ||
+      key.ctrl ||
+      key.meta ||
+      key.option
+    ) {
+      return;
+    }
+
+    setMode((currentMode) => getNextMode(currentMode));
+  });
 
   const contentWidth = Math.max(
     32,
@@ -32,7 +49,7 @@ export function HomeScreen() {
         return;
       }
       const { id } = await res.json();
-      const state: ChatLocationState = { prompt };
+      const state: ChatLocationState = { prompt, mode };
       navigate(`/sessions/${id}`, { state });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -72,6 +89,7 @@ export function HomeScreen() {
           <PromptTextArea
             width={contentWidth}
             disabled={pending}
+            modeLabel={getModeConfig(mode).label}
             onSubmitPrompt={(prompt) => {
               void handleSubmitPrompt(prompt);
             }}
@@ -95,7 +113,7 @@ export function HomeScreen() {
             </text>
             <box flexDirection="row" alignItems="center" gap={1}>
               <KeyCap label="tab" />
-              <text fg={theme.textMuted}>agents</text>
+              <text fg={theme.textMuted}>modes</text>
               <text fg={theme.borderSubtle}>·</text>
               <KeyCap label="^p" />
               <text fg={theme.textMuted}>commands</text>

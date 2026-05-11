@@ -5,6 +5,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type ChatAddToolOutputFunction,
 } from "ai";
+import { DEFAULT_MODE, getModeConfig, getNextMode, type Mode } from "newcode-ai";
 import {
   createOnToolCall,
   validateCodingAgentMessages,
@@ -33,16 +34,36 @@ export function ChatScreen() {
   const location = useLocation();
   const { id: sessionId } = useParams<{ id: string }>();
   const { width } = useTerminalDimensions();
-  const { prompt } = chatLocationStateSchema
-    .catch({ prompt: "" })
-    .parse(location.state);
+  const { prompt, mode: routeMode } = chatLocationStateSchema.parse(location.state);
   const initialPromptRef = useRef<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [mode, setMode] = useState<Mode>(routeMode ?? DEFAULT_MODE);
+  const modeRef = useRef(mode);
+
+  modeRef.current = mode;
+
+  useEffect(() => {
+    setMode(routeMode);
+  }, [routeMode, sessionId]);
 
   useKeyboard((key) => {
     if (key.name === "escape") {
       navigate("/");
+      return;
     }
+
+    if (
+      isBusy ||
+      key.name !== "tab" ||
+      key.shift ||
+      key.ctrl ||
+      key.meta ||
+      key.option
+    ) {
+      return;
+    }
+
+    setMode((currentMode) => getNextMode(currentMode));
   });
 
   const transport = useMemo(
@@ -51,6 +72,10 @@ export function ChatScreen() {
         api: client.chat[":sessionId"]
           .$url({ param: { sessionId: sessionId ?? "" } })
           .toString(),
+        // `useChat` keeps one Chat instance for a stable id, so transport
+        // changes alone do not replace the underlying transport. Resolve the
+        // body lazily so each request sees the latest mode.
+        body: () => ({ mode: modeRef.current }),
       }),
     [sessionId],
   );
@@ -65,13 +90,14 @@ export function ChatScreen() {
     () =>
       createOnToolCall<CodingAgentUIMessage>({
         workspaceRoot,
+        mode,
         getAddToolOutput: () => {
           const fn = addToolOutputRef.current;
           if (!fn) throw new Error("addToolOutput not bound yet");
           return fn;
         },
       }),
-    [],
+    [mode],
   );
 
   const { messages, sendMessage, setMessages, status, error, addToolOutput } =
@@ -228,6 +254,7 @@ export function ChatScreen() {
           width={composerWidth}
           clearOnSubmit
           disabled={isBusy || !hydrated}
+          modeLabel={getModeConfig(mode).label}
           onSubmitPrompt={(text) => {
             void sendMessage({ text });
           }}

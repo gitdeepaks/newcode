@@ -5,12 +5,13 @@ import type {
   UIMessage,
 } from "ai";
 import { validateUIMessages } from "ai";
+import type { Mode } from "./modes";
 import type { ToolOutput } from "./tools/definition";
-import { toolHandlers, tools } from "./tools/registry";
+import { allCodingTools, getCodingToolHandlersForMode } from "./tools/registry";
 import { isToolName, toolSpecs, type ToolName } from "./tools/specs";
 
 export { resolveWithinWorkspace } from "./workspace";
-export { bash, editFile, grep, listDirectory, readFile, writeFile } from "./tools/runners";
+export { bash, deleteFile, editFile, grep, listDirectory, readFile, writeFile } from "./tools/runners";
 
 export type RunTool = {
   <T extends ToolName>(
@@ -25,10 +26,13 @@ export type RunTool = {
 // the resolver only needs to do a prefix check from here on.
 export function createRunTool({
   workspaceRoot,
+  mode,
 }: {
   workspaceRoot: string;
+  mode: Mode;
 }): RunTool {
   const root = realpathSync(workspaceRoot);
+  const toolHandlers = getCodingToolHandlersForMode(mode);
 
   function runTool<T extends ToolName>(
     name: T,
@@ -40,7 +44,16 @@ export function createRunTool({
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    return toolHandlers[name](root, input);
+    if (!(name in toolHandlers)) {
+      throw new Error(`Tool ${name} is not available in ${mode} mode`);
+    }
+
+    const toolHandler = toolHandlers[name];
+    if (!toolHandler) {
+      throw new Error(`Tool ${name} is not available in ${mode} mode`);
+    }
+
+    return toolHandler(root, input);
   }
 
   return runTool;
@@ -53,7 +66,7 @@ export async function validateCodingAgentMessages<UI_MESSAGE extends UIMessage>(
     return [];
   }
 
-  return validateUIMessages<UI_MESSAGE>({ messages, tools });
+  return validateUIMessages<UI_MESSAGE>({ messages, tools: allCodingTools });
 }
 
 // Factory for `useChat`'s `onToolCall`. `addToolOutput` only exists *after*
@@ -61,12 +74,14 @@ export async function validateCodingAgentMessages<UI_MESSAGE extends UIMessage>(
 // take a getter the caller wires to a ref. Standard React pattern.
 export function createOnToolCall<UI_MESSAGE extends UIMessage>({
   workspaceRoot,
+  mode,
   getAddToolOutput,
 }: {
   workspaceRoot: string;
+  mode: Mode;
   getAddToolOutput: () => ChatAddToolOutputFunction<UI_MESSAGE>;
 }): ChatOnToolCallCallback<UI_MESSAGE> {
-  const runTool = createRunTool({ workspaceRoot });
+  const runTool = createRunTool({ workspaceRoot, mode });
 
   return async function onToolCall({ toolCall }) {
     // Required for type narrowing per AI SDK docs — without this,

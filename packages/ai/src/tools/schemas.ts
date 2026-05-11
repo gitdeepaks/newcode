@@ -1,2 +1,2 @@
 export * from "./specs";
-export { tools } from "./registry";
+export { allCodingTools, getCodingToolsForMode } from "./registry";

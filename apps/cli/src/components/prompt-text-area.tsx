@@ -11,6 +11,7 @@ type PromptTextAreaProps = {
   disabled?: boolean;
   width?: number;
   placeholder?: string;
+  modeLabel?: string;
 };
 
 export function PromptTextArea({
@@ -19,6 +20,7 @@ export function PromptTextArea({
   disabled = false,
   width = 82,
   placeholder = "Ask anything…",
+  modeLabel,
 }: PromptTextAreaProps) {
   const textareaRef = useRef<TextareaRenderable>(null);
 
@@ -79,6 +81,15 @@ export function PromptTextArea({
           <span fg={theme.textMuted}>↵ send</span>
           <span fg={theme.borderSubtle}> · </span>
           <span fg={theme.textMuted}>⇧↵ newline</span>
+          <span fg={theme.borderSubtle}> · </span>
+          <span fg={theme.textMuted}>tab cycle</span>
+          {modeLabel ? (
+            <>
+              <span fg={theme.borderSubtle}> · </span>
+              <span fg={theme.textMuted}>mode: </span>
+              <span fg={theme.accentSoft}>{modeLabel}</span>
+            </>
+          ) : null}
         </text>
       </box>
     </box>

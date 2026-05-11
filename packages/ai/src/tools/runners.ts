@@ -1,8 +1,10 @@
 import {
+  lstat,
   mkdir,
   readFile as fsReadFile,
   readdir,
   stat,
+  unlink,
   writeFile as fsWriteFile,
 } from "node:fs/promises";
 import path from "node:path";
@@ -10,6 +12,8 @@ import { resolveWithinWorkspace } from "../workspace";
 import type {
   BashInput,
   BashOutput,
+  DeleteFileInput,
+  DeleteFileOutput,
   EditFileInput,
   EditFileOutput,
   GrepInput,
@@ -63,6 +67,23 @@ export async function writeFile(
   await mkdir(path.dirname(abs), { recursive: true });
   await fsWriteFile(abs, input.content, "utf8");
   return { bytesWritten: Buffer.byteLength(input.content, "utf8") };
+}
+
+// delete_file ----------------------------------------------------------------
+
+export async function deleteFile(
+  workspaceRoot: string,
+  input: DeleteFileInput,
+): Promise<DeleteFileOutput> {
+  const abs = resolveWithinWorkspace(workspaceRoot, input.path);
+  const target = await lstat(abs);
+
+  if (target.isDirectory()) {
+    throw new Error(`delete_file only removes files; ${input.path} is a directory`);
+  }
+
+  await unlink(abs);
+  return { deleted: true };
 }
 
 // edit_file ------------------------------------------------------------------
