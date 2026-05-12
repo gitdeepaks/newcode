@@ -69,12 +69,7 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
 
   if (!isUser) {
     return (
-      <box flexDirection="column" width={width} gap={0}>
-        <text>
-          <span fg="#8B5CF6">
-            <strong>Assistant</strong>
-          </span>
-        </text>
+      <box flexDirection="column" width={width} paddingX={2} gap={1}>
         {parts}
       </box>
     );
@@ -89,7 +84,6 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
         paddingX={2}
         paddingY={1}
         flexDirection="column"
-        gap={1}
       >
         {parts}
       </box>

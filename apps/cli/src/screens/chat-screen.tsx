@@ -16,6 +16,7 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { ChatErrorMessage, ChatMessage } from "../components/chat/chat-message";
 import { PromptTextArea } from "../components/prompt-text-area";
 
+import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
 import { workspaceRoot } from "../lib/workspace-root";
@@ -27,6 +28,7 @@ const HORIZONTAL_PADDING = 4;
 
 export function ChatScreen() {
   const navigate = useNavigate();
+  const handleCommand = usePromptCommand();
   const location = useLocation();
   const { id: sessionId } = useParams<{ id: string }>();
   const { width, height } = useTerminalDimensions();
@@ -289,6 +291,7 @@ export function ChatScreen() {
           onSubmitPrompt={(text) => {
             submitPrompt(text);
           }}
+          onCommand={handleCommand}
         />
       </box>
     </box>

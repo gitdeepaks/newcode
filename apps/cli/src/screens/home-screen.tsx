@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { PromptTextArea } from "../components/prompt-text-area";
 
+import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
 import type { ChatLocationState } from "../routes/state";
@@ -13,6 +14,7 @@ const HORIZONTAL_PADDING = 4;
 
 export function HomeScreen() {
   const navigate = useNavigate();
+  const handleCommand = usePromptCommand();
   const { width } = useTerminalDimensions();
   const [mode, setMode] = useState<Mode>(DEFAULT_MODE);
   const [pending, setPending] = useState(false);
@@ -85,6 +87,7 @@ export function HomeScreen() {
             onSubmitPrompt={(prompt) => {
               void handleSubmitPrompt(prompt);
             }}
+            onCommand={handleCommand}
           />
 
           {error ? (
