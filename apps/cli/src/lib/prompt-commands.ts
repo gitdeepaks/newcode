@@ -1,42 +1,15 @@
-export type PromptCommandName =
-  | "/exit"
-  | "/new"
-  | "/fix"
-  | "/explain"
-  | "/review"
-  | "/summarize"
-  | "/test"
-  | "/docs"
-  | "/refactor"
-  | "/optimize"
-  | "/security"
-  | "/types"
-  | "/commit"
-  | "/branch"
-  | "/diff"
-  | "/status"
-  | "/model"
-  | "/settings"
-  | "/help"
-  | "/clear"
-  | "/history"
-  | "/search"
-  | "/plan"
-  | "/apply"
-  | "/undo";
-
-export type PromptCommandInvocation = {
-  name: PromptCommandName;
-  args: string[];
-  input: string;
-};
-
 type PromptCommandDefinition = {
-  name: PromptCommandName;
+  name: string;
   description: string;
 };
 
-const promptCommands = [
+function definePromptCommands<const Commands extends readonly PromptCommandDefinition[]>(
+  commands: Commands,
+) {
+  return commands;
+}
+
+const promptCommands = definePromptCommands([
   {
     name: "/exit",
     description: "Exit the app",
@@ -137,20 +110,25 @@ const promptCommands = [
     name: "/undo",
     description: "Undo last operation",
   },
-] satisfies PromptCommandDefinition[];
+]);
 
-const promptCommandByName = new Map(
-  promptCommands.map((command) => [command.name, command]),
-);
+export type PromptCommandName = (typeof promptCommands)[number]["name"];
+
+export type PromptCommandInvocation = {
+  name: PromptCommandName;
+  args: string[];
+  input: string;
+};
 
 export function parsePromptCommand(input: string): PromptCommandInvocation | null {
-  const command = promptCommandByName.get(input as PromptCommandName);
+  const [name, ...args] = input.trim().split(/\s+/);
+  const command = promptCommands.find((command) => command.name === name);
 
   if (!command) {
     return null;
   }
 
-  return { name: command.name, args: [], input };
+  return { name: command.name, args, input };
 }
 
 export function createPromptCommandInvocation(

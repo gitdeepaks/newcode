@@ -9,7 +9,7 @@ type PromptCommandSuggestion = {
 };
 
 type PromptCommandPopoverProps = {
-  commands: PromptCommandSuggestion[];
+  commands: readonly PromptCommandSuggestion[];
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
   onCommandSelect: (index: number) => void;
@@ -69,7 +69,6 @@ export function PromptCommandPopover({
         ref={scrollboxRef}
         width={scrollboxWidth}
         height={visibleHeight}
-        focused
         scrollY
         scrollX={false}
         viewportCulling
@@ -98,7 +97,11 @@ export function PromptCommandPopover({
               id={getCommandRowId(index)}
               flexDirection="row"
               backgroundColor={active ? activeBackground : popoverBackground}
-              onMouseMove={() => onActiveIndexChange(index)}
+              onMouseMove={() => {
+                if (!active) {
+                  onActiveIndexChange(index);
+                }
+              }}
               onMouseDown={() => onCommandSelect(index)}
               paddingX={1}
             >

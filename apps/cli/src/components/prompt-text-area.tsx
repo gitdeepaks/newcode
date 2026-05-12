@@ -102,7 +102,13 @@ export function PromptTextArea({
         <textarea
           ref={textareaRef}
           onContentChange={() => {
-            commandMenu.updatePrompt(textareaRef.current?.plainText ?? "");
+            const prompt = textareaRef.current?.plainText;
+
+            if (prompt === undefined) {
+              return;
+            }
+
+            commandMenu.updatePrompt(prompt);
           }}
           onSubmit={handleSubmit}
           placeholder={placeholder}
