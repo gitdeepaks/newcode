@@ -17,7 +17,7 @@ type ThemeListDialogProps = {
 type ThemeListDialogOption = SearchListDialogOption<ThemeName>;
 
 export function ThemeListDialog({ onThemeSelect }: ThemeListDialogProps) {
-  const { name: activeThemeName, setThemeName } = useThemeService();
+  const { name: activeThemeName, saveThemeName, setThemeName } = useThemeService();
   const initialThemeNameRef = useRef(activeThemeName);
   const selectedThemeNameRef = useRef<ThemeName | null>(null);
   const options = useMemo<ThemeListDialogOption[]>(
@@ -66,7 +66,7 @@ export function ThemeListDialog({ onThemeSelect }: ThemeListDialogProps) {
       onActiveOptionChange={previewTheme}
       onOptionSelect={(option) => {
         selectedThemeNameRef.current = option.id;
-        setThemeName(option.id);
+        saveThemeName(option.id);
         onThemeSelect?.(option.id);
       }}
     />

@@ -6,6 +6,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import { configService } from "./config";
+import type { ThemeName } from "./theme-names";
+
+export { themeNames, type ThemeName } from "./theme-names";
 
 export type Theme = {
   bg: string;
@@ -54,6 +58,7 @@ type ThemeContextValue = {
   name: ThemeName;
   theme: Theme;
   setThemeName: (name: ThemeName) => void;
+  saveThemeName: (name: ThemeName) => void;
 };
 
 /**
@@ -508,23 +513,6 @@ export const ayuDarkTheme = {
   },
 } as const satisfies Theme;
 
-export const themeNames = [
-  "default",
-  "alternative",
-  "dracula",
-  "nord",
-  "gruvbox",
-  "solarizedDark",
-  "monokai",
-  "catppuccinMocha",
-  "tokyoNight",
-  "oneDark",
-  "everforest",
-  "ayuDark",
-] as const;
-
-export type ThemeName = (typeof themeNames)[number];
-
 export const themes = {
   default: defaultTheme,
   alternative: alternativeTheme,
@@ -606,7 +594,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children, themeName }: ThemeProviderProps) {
   const [activeThemeName, setActiveThemeName] = useState<ThemeName>(
-    themeName ?? "default",
+    themeName ?? configService.getThemeName() ?? "default",
   );
   const currentThemeName = themeName ?? activeThemeName;
   const value = useMemo<ThemeContextValue>(
@@ -614,6 +602,10 @@ export function ThemeProvider({ children, themeName }: ThemeProviderProps) {
       name: currentThemeName,
       theme: themeService.getTheme(currentThemeName),
       setThemeName: setActiveThemeName,
+      saveThemeName: (name) => {
+        configService.setThemeName(name);
+        setActiveThemeName(name);
+      },
     }),
     [currentThemeName],
   );
