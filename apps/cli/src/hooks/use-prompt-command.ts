@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { useDialog } from "../components/dialog";
 import { SessionDialog } from "../components/session-dialog";
 import { ThemeListDialog } from "../components/theme-list-dialog";
+import { toast } from "../components/toast";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import type { ChatLocationState } from "../routes/state";
 
@@ -39,6 +40,26 @@ export function usePromptCommand() {
           content: createElement(ThemeListDialog, {
             onThemeSelect: closeDialog,
           }),
+        });
+        return;
+      case "/info":
+        toast.info("Info toast", {
+          description: "This is the informational toast variant.",
+        });
+        return;
+      case "/success":
+        toast.success("Success toast", {
+          description: "The requested action completed successfully.",
+        });
+        return;
+      case "/warning":
+        toast.warning("Warning toast", {
+          description: "This is a warning toast for something noteworthy.",
+        });
+        return;
+      case "/error":
+        toast.error("Error toast", {
+          description: "This is the error toast variant.",
         });
         return;
     }

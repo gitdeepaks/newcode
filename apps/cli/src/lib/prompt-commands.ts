@@ -87,6 +87,22 @@ const promptCommands = definePromptCommands([
     description: "Change active theme",
   },
   {
+    name: "/info",
+    description: "Show info toast",
+  },
+  {
+    name: "/success",
+    description: "Show success toast",
+  },
+  {
+    name: "/warning",
+    description: "Show warning toast",
+  },
+  {
+    name: "/error",
+    description: "Show error toast",
+  },
+  {
     name: "/settings",
     description: "Open settings",
   },
