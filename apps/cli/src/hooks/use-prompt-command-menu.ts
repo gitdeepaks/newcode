@@ -14,8 +14,10 @@ type UsePromptCommandMenuOptions = {
 export function usePromptCommandMenu({ onCommand }: UsePromptCommandMenuOptions) {
   const [prompt, setPrompt] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const commands = getPromptCommandSuggestions();
-  const isOpen = prompt === "/" && commands.length > 0;
+  const query = prompt.trim();
+  const canShowSuggestions = query.startsWith("/") && !/\s/.test(query);
+  const commands = canShowSuggestions ? getPromptCommandSuggestions(query) : [];
+  const isOpen = commands.length > 0;
 
   useKeyboard((key) => {
     if (!isOpen) {

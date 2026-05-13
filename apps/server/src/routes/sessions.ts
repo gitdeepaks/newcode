@@ -7,6 +7,18 @@ import { fromDbMode } from "../lib/mode-mapping";
 const sessionParamSchema = z.object({ id: z.string().min(1) });
 
 export const sessionRoutes = new Hono()
+  .get("/", async (c) => {
+    const sessions = await prisma.session.findMany({
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+      },
+    });
+
+    return c.json({ sessions });
+  })
   .post("/", async (c) => {
     const session = await prisma.session.create({ data: {} });
     return c.json({ id: session.id }, 201);

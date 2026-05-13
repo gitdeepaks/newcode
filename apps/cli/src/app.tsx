@@ -1,6 +1,11 @@
 import { RouterProvider } from "react-router";
+import { DialogProvider } from "./components/dialog";
 import { router } from "./routes/router";
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <DialogProvider>
+      <RouterProvider router={router} />
+    </DialogProvider>
+  );
 }

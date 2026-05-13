@@ -19,6 +19,10 @@ const promptCommands = definePromptCommands([
     description: "New session",
   },
   {
+    name: "/sessions",
+    description: "Open sessions",
+  },
+  {
     name: "/fix",
     description: "Fix current code",
   },
@@ -137,6 +141,6 @@ export function createPromptCommandInvocation(
   return { name, args: [], input: name };
 }
 
-export function getPromptCommandSuggestions() {
-  return promptCommands;
+export function getPromptCommandSuggestions(query: string) {
+  return promptCommands.filter((command) => command.name.startsWith(query));
 }
