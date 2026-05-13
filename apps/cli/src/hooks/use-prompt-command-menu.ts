@@ -1,4 +1,3 @@
-import { useKeyboard } from "@opentui/react";
 import { useState } from "react";
 import {
   createPromptCommandInvocation,
@@ -19,22 +18,25 @@ export function usePromptCommandMenu({ onCommand }: UsePromptCommandMenuOptions)
   const commands = canShowSuggestions ? getPromptCommandSuggestions(query) : [];
   const isOpen = commands.length > 0;
 
-  useKeyboard((key) => {
+  const handleKey = (key: { name: string }) => {
     if (!isOpen) {
-      return;
+      return false;
     }
 
     if (key.name === "up") {
       setActiveIndex((index) =>
         index === 0 ? commands.length - 1 : index - 1,
       );
-      return;
+      return true;
     }
 
     if (key.name === "down") {
       setActiveIndex((index) => (index + 1) % commands.length);
+      return true;
     }
-  });
+
+    return false;
+  };
 
   const updatePrompt = (value: string) => {
     setPrompt(value);
@@ -82,6 +84,7 @@ export function usePromptCommandMenu({ onCommand }: UsePromptCommandMenuOptions)
     activeIndex,
     clearPrompt,
     commands,
+    handleKey,
     isOpen,
     prompt,
     submitCommand,

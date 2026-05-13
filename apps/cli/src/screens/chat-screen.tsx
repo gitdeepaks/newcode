@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import { useTerminalDimensions } from "@opentui/react";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
@@ -11,7 +11,7 @@ import {
   validateCodingAgentMessages,
 } from "newcode-ai/client";
 import type { CodingAgentUIMessage } from "newcode-ai/server";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { ChatErrorMessage, ChatMessage } from "../components/chat/chat-message";
 import { PromptTextArea } from "../components/prompt-text-area";
@@ -19,6 +19,7 @@ import { PromptTextArea } from "../components/prompt-text-area";
 import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
+import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { workspaceRoot } from "../lib/workspace-root";
 import { chatLocationStateSchema } from "../routes/state";
 
@@ -47,26 +48,6 @@ export function ChatScreen() {
   useEffect(() => {
     setMode(routeState.mode);
   }, [routeState.mode, sessionId]);
-
-  useKeyboard((key) => {
-    if (key.name === "escape") {
-      navigate("/");
-      return;
-    }
-
-    if (
-      isBusy ||
-      key.name !== "tab" ||
-      key.shift ||
-      key.ctrl ||
-      key.meta ||
-      key.option
-    ) {
-      return;
-    }
-
-    setMode((currentMode) => getNextMode(currentMode));
-  });
 
   const transport = useMemo(
     () =>
@@ -209,6 +190,32 @@ export function ChatScreen() {
 
   const isBusy = status === "submitted" || status === "streaming";
   const isStreaming = status === "streaming";
+
+  useTuiLayer({
+    onKey: useCallback(
+      ((key) => {
+        if (key.name === "escape") {
+          navigate("/");
+          return true;
+        }
+
+        if (
+          isBusy ||
+          key.name !== "tab" ||
+          key.shift ||
+          key.ctrl ||
+          key.meta ||
+          key.option
+        ) {
+          return false;
+        }
+
+        setMode((currentMode) => getNextMode(currentMode));
+        return true;
+      }) satisfies TuiLayerKeyHandler,
+      [isBusy, navigate],
+    ),
+  });
 
   const contentWidth = Math.max(
     32,

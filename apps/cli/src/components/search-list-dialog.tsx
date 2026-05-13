@@ -1,6 +1,6 @@
 import type { InputRenderable, ScrollBoxRenderable } from "@opentui/core";
-import { useKeyboard } from "@opentui/react";
-import { Fragment, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { theme } from "../lib/theme";
 import { Dialog, dialogColors } from "./dialog";
 
@@ -66,30 +66,39 @@ export function SearchListDialog({
     scrollboxRef.current?.scrollChildIntoView(getOptionRowId(option.id));
   }, [activeOptionIndex, visibleOptions]);
 
-  useKeyboard((key) => {
-    if (visibleOptions.length === 0) {
-      return;
-    }
+  const { isActiveLayer } = useTuiLayer({
+    onKey: useCallback(
+      ((key) => {
+        if (visibleOptions.length === 0) {
+          return false;
+        }
 
-    if (key.name === "up") {
-      setActiveIndex((index) =>
-        index === 0 ? visibleOptions.length - 1 : index - 1,
-      );
-      return;
-    }
+        if (key.name === "up") {
+          setActiveIndex((index) =>
+            index === 0 ? visibleOptions.length - 1 : index - 1,
+          );
+          return true;
+        }
 
-    if (key.name === "down") {
-      setActiveIndex((index) => (index + 1) % visibleOptions.length);
-      return;
-    }
+        if (key.name === "down") {
+          setActiveIndex((index) => (index + 1) % visibleOptions.length);
+          return true;
+        }
 
-    if (key.name === "return" || key.name === "enter") {
-      const option = visibleOptions[activeOptionIndex];
+        if (key.name === "return" || key.name === "enter") {
+          const option = visibleOptions[activeOptionIndex];
 
-      if (option) {
-        onOptionSelect?.(option);
-      }
-    }
+          if (option) {
+            onOptionSelect?.(option);
+          }
+
+          return true;
+        }
+
+        return false;
+      }) satisfies TuiLayerKeyHandler,
+      [activeOptionIndex, onOptionSelect, visibleOptions],
+    ),
   });
 
   return (
@@ -99,7 +108,7 @@ export function SearchListDialog({
           ref={inputRef}
           onInput={(value) => updateSearch(value)}
           placeholder={placeholder}
-          focused
+          focused={isActiveLayer}
           backgroundColor={dialogColors.background}
           focusedBackgroundColor={dialogColors.background}
           textColor={theme.text}

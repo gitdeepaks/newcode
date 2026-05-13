@@ -1,11 +1,12 @@
 import type { TextareaRenderable } from "@opentui/core";
 import { getModeConfig, type Mode } from "newcode-ai";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { z } from "zod";
 import { usePromptCommandMenu } from "../hooks/use-prompt-command-menu";
 import { getModeColor } from "../lib/mode-style";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import { theme } from "../lib/theme";
+import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { PromptCommandPopover } from "./prompt-command-popover";
 
 const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0);
@@ -34,10 +35,36 @@ export function PromptTextArea({
   const textareaRef = useRef<TextareaRenderable>(null);
   const commandMenu = usePromptCommandMenu({ onCommand });
 
-  const clearPrompt = () => {
+  const clearPrompt = useCallback(() => {
     commandMenu.clearPrompt();
     textareaRef.current?.clear();
-  };
+  }, [commandMenu]);
+
+  const { isActiveLayer } = useTuiLayer({
+    onKey: useCallback(
+      ((key) => {
+        if (disabled) {
+          return false;
+        }
+
+        if (commandMenu.handleKey(key)) {
+          return true;
+        }
+
+        if (key.ctrl && key.name === "c") {
+          if (commandMenu.prompt.trim().length === 0) {
+            return false;
+          }
+
+          clearPrompt();
+          return true;
+        }
+
+        return false;
+      }) satisfies TuiLayerKeyHandler,
+      [clearPrompt, commandMenu, disabled],
+    ),
+  });
 
   const handleSubmit = () => {
     if (disabled) {
@@ -113,7 +140,7 @@ export function PromptTextArea({
           onSubmit={handleSubmit}
           placeholder={placeholder}
           height={2}
-          focused
+          focused={isActiveLayer && !disabled}
           keyBindings={[
             { name: "return", action: "submit" },
             { name: "return", shift: true, action: "newline" },

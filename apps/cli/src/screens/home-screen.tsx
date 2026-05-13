@@ -1,12 +1,13 @@
-import { useKeyboard, useTerminalDimensions } from "@opentui/react";
+import { useTerminalDimensions } from "@opentui/react";
 import { DEFAULT_MODE, getNextMode, type Mode } from "newcode-ai";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
 import { PromptTextArea } from "../components/prompt-text-area";
 
 import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
 import { theme } from "../lib/theme";
+import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import type { ChatLocationState } from "../routes/state";
 
 const MAX_CONTENT_WIDTH = 94;
@@ -20,19 +21,25 @@ export function HomeScreen() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useKeyboard((key) => {
-    if (
-      pending ||
-      key.name !== "tab" ||
-      key.shift ||
-      key.ctrl ||
-      key.meta ||
-      key.option
-    ) {
-      return;
-    }
+  useTuiLayer({
+    onKey: useCallback(
+      ((key) => {
+        if (
+          pending ||
+          key.name !== "tab" ||
+          key.shift ||
+          key.ctrl ||
+          key.meta ||
+          key.option
+        ) {
+          return false;
+        }
 
-    setMode((currentMode) => getNextMode(currentMode));
+        setMode((currentMode) => getNextMode(currentMode));
+        return true;
+      }) satisfies TuiLayerKeyHandler,
+      [pending],
+    ),
   });
 
   const contentWidth = Math.max(

@@ -1,13 +1,14 @@
 import { RGBA } from "@opentui/core";
-import { useKeyboard } from "@opentui/react";
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
 import { theme } from "../lib/theme";
+import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 
 type DialogOptions = {
   title: string;
@@ -51,7 +52,7 @@ const DialogContext = createContext<DialogContextValue | null>(null);
 export function DialogProvider({ children }: DialogProviderProps) {
   const [dialog, setDialog] = useState<DialogOptions | null>(null);
 
-  const closeDialog = () => setDialog(null);
+  const closeDialog = useCallback(() => setDialog(null), []);
 
   const value = useMemo<DialogContextValue>(
     () => ({
@@ -61,7 +62,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
       openDialog: setDialog,
       closeDialog,
     }),
-    [dialog],
+    [closeDialog, dialog],
   );
 
   return (
@@ -91,10 +92,18 @@ export function useDialog() {
 export function DialogOverlay({ children }: DialogOverlayProps) {
   const { closeDialog } = useDialog();
 
-  useKeyboard((key) => {
-    if (key.name === "escape") {
-      closeDialog();
-    }
+  useTuiLayer({
+    onKey: useCallback(
+      ((key) => {
+        if (key.name === "escape" || (key.ctrl && key.name === "c")) {
+          closeDialog();
+          return true;
+        }
+
+        return false;
+      }) satisfies TuiLayerKeyHandler,
+      [closeDialog],
+    ),
   });
 
   return (
