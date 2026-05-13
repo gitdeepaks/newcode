@@ -2,11 +2,13 @@ import type { TextareaRenderable } from "@opentui/core";
 import { getModeConfig, type Mode } from "newcode-ai";
 import { useCallback, useRef } from "react";
 import { z } from "zod";
+import { useFileMentionMenu } from "../hooks/use-file-mention-menu";
 import { usePromptCommandMenu } from "../hooks/use-prompt-command-menu";
 import { getModeColor } from "../lib/mode-style";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import { theme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
+import { FileMentionPopover } from "./file-mention-popover";
 import { PromptCommandPopover } from "./prompt-command-popover";
 
 const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0);
@@ -34,17 +36,31 @@ export function PromptTextArea({
 }: PromptTextAreaProps) {
   const textareaRef = useRef<TextareaRenderable>(null);
   const commandMenu = usePromptCommandMenu({ onCommand });
+  const fileMentionMenu = useFileMentionMenu();
 
   const clearPrompt = useCallback(() => {
     commandMenu.clearPrompt();
+    fileMentionMenu.clearPrompt();
     textareaRef.current?.clear();
-  }, [commandMenu]);
+  }, [commandMenu, fileMentionMenu]);
 
   const { isActiveLayer } = useTuiLayer({
     onKey: useCallback(
       ((key) => {
         if (disabled) {
           return false;
+        }
+
+        if (
+          fileMentionMenu.isOpen &&
+          (key.name === "return" || key.name === "enter")
+        ) {
+          handleFileMentionSelect(fileMentionMenu.activeIndex);
+          return true;
+        }
+
+        if (fileMentionMenu.handleKey(key)) {
+          return true;
         }
 
         if (commandMenu.handleKey(key)) {
@@ -62,12 +78,17 @@ export function PromptTextArea({
 
         return false;
       }) satisfies TuiLayerKeyHandler,
-      [clearPrompt, commandMenu, disabled],
+      [clearPrompt, commandMenu, disabled, fileMentionMenu],
     ),
   });
 
-  const handleSubmit = () => {
+  function handleSubmit() {
     if (disabled) {
+      return;
+    }
+
+    if (fileMentionMenu.isOpen) {
+      handleFileMentionSelect(fileMentionMenu.activeIndex);
       return;
     }
 
@@ -87,9 +108,9 @@ export function PromptTextArea({
     }
 
     onSubmitPrompt?.(parsedPrompt.data);
-  };
+  }
 
-  const handleCommandSelect = (index: number) => {
+  function handleCommandSelect(index: number) {
     if (disabled) {
       return;
     }
@@ -97,7 +118,29 @@ export function PromptTextArea({
     if (commandMenu.submitCommandAtIndex(index)) {
       clearPrompt();
     }
-  };
+  }
+
+  function handleFileMentionSelect(index: number) {
+    if (disabled) {
+      return;
+    }
+
+    const result = fileMentionMenu.insertOptionAtIndex(index);
+
+    if (result !== undefined) {
+      const cursorPosition = getCursorPosition(result.prompt, result.cursorOffset);
+
+      textareaRef.current?.replaceText(result.prompt);
+      textareaRef.current?.setCursor(cursorPosition.row, cursorPosition.col);
+      commandMenu.updatePrompt(result.prompt);
+      fileMentionMenu.updatePrompt(result.prompt);
+    }
+  }
+
+  function handlePromptChange(prompt: string) {
+    commandMenu.updatePrompt(prompt);
+    fileMentionMenu.updatePrompt(prompt);
+  }
 
   const modeColor = mode ? getModeColor(mode) : theme.accent;
   const borderColor = disabled ? theme.borderSubtle : modeColor;
@@ -117,6 +160,17 @@ export function PromptTextArea({
         />
       ) : null}
 
+      {fileMentionMenu.isOpen ? (
+        <FileMentionPopover
+          options={fileMentionMenu.options}
+          activeIndex={fileMentionMenu.activeIndex}
+          onActiveIndexChange={fileMentionMenu.setActiveIndex}
+          onOptionSelect={handleFileMentionSelect}
+          width={width}
+          bottom={promptHeight}
+        />
+      ) : null}
+
       <box
         border={["left"]}
         borderColor={borderColor}
@@ -128,6 +182,16 @@ export function PromptTextArea({
       >
         <textarea
           ref={textareaRef}
+          onKeyDown={(key) => {
+            if (
+              fileMentionMenu.isOpen &&
+              (key.name === "return" || key.name === "enter")
+            ) {
+              key.preventDefault();
+              key.stopPropagation();
+              handleFileMentionSelect(fileMentionMenu.activeIndex);
+            }
+          }}
           onContentChange={() => {
             const prompt = textareaRef.current?.plainText;
 
@@ -135,7 +199,7 @@ export function PromptTextArea({
               return;
             }
 
-            commandMenu.updatePrompt(prompt);
+            handlePromptChange(prompt);
           }}
           onSubmit={handleSubmit}
           placeholder={placeholder}
@@ -165,4 +229,14 @@ export function PromptTextArea({
       </box>
     </box>
   );
+}
+
+function getCursorPosition(prompt: string, offset: number) {
+  const linesBeforeCursor = prompt.slice(0, offset).split("\n");
+  const lastLine = linesBeforeCursor[linesBeforeCursor.length - 1];
+
+  return {
+    row: linesBeforeCursor.length - 1,
+    col: lastLine.length,
+  };
 }
