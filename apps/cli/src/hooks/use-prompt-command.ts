@@ -2,8 +2,9 @@ import { useRenderer } from "@opentui/react";
 import { DEFAULT_MODE } from "newcode-ai";
 import { createElement } from "react";
 import { useNavigate } from "react-router";
-import { SessionDialog } from "../components/session-dialog";
 import { useDialog } from "../components/dialog";
+import { SessionDialog } from "../components/session-dialog";
+import { ThemeListDialog } from "../components/theme-list-dialog";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import type { ChatLocationState } from "../routes/state";
 
@@ -29,6 +30,14 @@ export function usePromptCommand() {
               closeDialog();
               navigate(`/sessions/${id}`, { state });
             },
+          }),
+        });
+        return;
+      case "/theme":
+        openDialog({
+          title: "Theme",
+          content: createElement(ThemeListDialog, {
+            onThemeSelect: closeDialog,
           }),
         });
         return;

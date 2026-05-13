@@ -12,7 +12,7 @@ import {
 import type { Mode } from "newcode-ai";
 import { getMarkdownSyntaxStyle } from "../../lib/markdown-style";
 import { getModeColor } from "../../lib/mode-style";
-import { theme } from "../../lib/theme";
+import { useTheme } from "../../lib/theme";
 
 type AnyUIMessagePart = UIMessage["parts"][number];
 
@@ -30,6 +30,8 @@ export function ChatErrorMessage({
   error: Error;
   width: number;
 }) {
+  const theme = useTheme();
+
   return (
     <box flexDirection="column" width={width}>
       <text>
@@ -55,8 +57,9 @@ export function ChatErrorMessage({
 }
 
 export function ChatMessage({ message, width, mode, streaming }: ChatMessageProps) {
+  const theme = useTheme();
   const isUser = message.role === "user";
-  const modeColor = getModeColor(mode);
+  const modeColor = getModeColor(theme, mode);
   const parts = message.parts.map((part, index) => (
     <MessagePart
       // Parts have no stable id; index is fine because order is append-only.
@@ -80,7 +83,7 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
       <box
         border={["left"]}
         borderColor={modeColor}
-        backgroundColor="#1E1E1E"
+        backgroundColor={theme.elevatedSurface}
         paddingX={2}
         paddingY={1}
         flexDirection="column"
@@ -117,6 +120,7 @@ type TextPartProps = {
 };
 
 function TextPart({ part, role, streaming }: TextPartProps) {
+  const theme = useTheme();
   const content = part.text || " ";
   const isStreaming = streaming && part.state === "streaming";
 
@@ -131,7 +135,7 @@ function TextPart({ part, role, streaming }: TextPartProps) {
   return (
     <markdown
       content={content}
-      syntaxStyle={getMarkdownSyntaxStyle()}
+      syntaxStyle={getMarkdownSyntaxStyle(theme)}
       fg={theme.text}
       streaming={isStreaming}
       tableOptions={{
@@ -150,6 +154,7 @@ function ReasoningPart({
   part: ReasoningUIPart;
   streaming: boolean;
 }) {
+  const theme = useTheme();
   const isStreaming = streaming && part.state === "streaming";
 
   return (
@@ -168,6 +173,7 @@ function ReasoningPart({
 }
 
 function ToolPart({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
+  const theme = useTheme();
   const name = getToolName(part);
 
   switch (part.state) {
@@ -207,6 +213,8 @@ function ToolHeader({
   name: string;
   children?: React.ReactNode;
 }) {
+  const theme = useTheme();
+
   return (
     <box flexDirection="column" gap={0}>
       <text>
@@ -221,6 +229,8 @@ function ToolHeader({
 }
 
 function PreviewLine({ label, value }: { label: string; value: unknown }) {
+  const theme = useTheme();
+
   return (
     <text>
       <span fg={theme.textMuted}>{label}: </span>

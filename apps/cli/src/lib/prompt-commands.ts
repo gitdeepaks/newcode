@@ -83,6 +83,10 @@ const promptCommands = definePromptCommands([
     description: "Change active model",
   },
   {
+    name: "/theme",
+    description: "Change active theme",
+  },
+  {
     name: "/settings",
     description: "Open settings",
   },

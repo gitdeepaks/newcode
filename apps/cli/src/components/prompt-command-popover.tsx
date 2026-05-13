@@ -1,7 +1,7 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useLayoutEffect, useRef } from "react";
 import type { PromptCommandName } from "../lib/prompt-commands";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 
 type PromptCommandSuggestion = {
   name: PromptCommandName;
@@ -17,9 +17,6 @@ type PromptCommandPopoverProps = {
   bottom: number;
 };
 
-const popoverBackground = "#1E1E1E";
-const activeBackground = "#FDB082";
-const activeText = "#050505";
 const visibleCommandCount = 10;
 
 function getCommandRowId(index: number) {
@@ -34,6 +31,7 @@ export function PromptCommandPopover({
   width,
   bottom,
 }: PromptCommandPopoverProps) {
+  const theme = useTheme();
   const scrollboxRef = useRef<ScrollBoxRenderable>(null);
 
   useLayoutEffect(() => {
@@ -51,6 +49,9 @@ export function PromptCommandPopover({
   const scrollboxWidth = Math.max(1, width - 2);
   const commandColumnWidth = Math.min(22, Math.max(10, scrollboxWidth - 24));
   const visibleHeight = Math.min(visibleCommandCount, commands.length);
+  const popoverBackground = theme.elevatedSurface;
+  const activeBackground = theme.selectedBackground;
+  const activeText = theme.inverseText;
 
   return (
     <box

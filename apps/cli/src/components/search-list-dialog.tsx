@@ -1,43 +1,54 @@
 import type { InputRenderable, ScrollBoxRenderable } from "@opentui/core";
-import { Fragment, useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
-import { theme } from "../lib/theme";
-import { Dialog, dialogColors } from "./dialog";
+import { useTheme } from "../lib/theme";
+import { Dialog, getDialogColors } from "./dialog";
 
-export type SearchListDialogOption = {
-  id: string;
+export type SearchListDialogOption<TId extends string = string> = {
+  id: TId;
   label: string;
   description?: string;
   metadata?: string;
   group?: string;
 };
 
-type SearchListDialogProps = {
+type SearchListDialogProps<TId extends string = string> = {
   title: string;
-  options: readonly SearchListDialogOption[];
+  options: readonly SearchListDialogOption<TId>[];
   maxWidth?: number | `${number}%` | "auto";
   height?: number;
+  initialActiveIndex?: number;
   placeholder?: string;
   emptyMessage?: string;
-  onOptionSelect?: (option: SearchListDialogOption) => void;
+  onActiveOptionChange?: (option: SearchListDialogOption<TId>) => void;
+  onOptionSelect?: (option: SearchListDialogOption<TId>) => void;
 };
 
-export function SearchListDialog({
+export function SearchListDialog<TId extends string = string>({
   title,
   options,
   maxWidth,
   height = 14,
+  initialActiveIndex = 0,
   placeholder = "Search",
   emptyMessage = "No options found",
+  onActiveOptionChange,
   onOptionSelect,
-}: SearchListDialogProps) {
+}: SearchListDialogProps<TId>) {
+  const theme = useTheme();
   const inputRef = useRef<InputRenderable>(null);
   const scrollboxRef = useRef<ScrollBoxRenderable>(null);
   const queryRef = useRef("");
   const optionsRef = useRef(options);
-  const visibleOptionsRef = useRef<readonly SearchListDialogOption[]>(options);
+  const visibleOptionsRef = useRef<readonly SearchListDialogOption<TId>[]>(options);
   const [, rerender] = useState(0);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(initialActiveIndex);
 
   if (optionsRef.current !== options) {
     optionsRef.current = options;
@@ -55,6 +66,7 @@ export function SearchListDialog({
 
   const visibleOptions = visibleOptionsRef.current;
   const activeOptionIndex = Math.min(activeIndex, visibleOptions.length - 1);
+  const dialogColors = getDialogColors(theme);
 
   useLayoutEffect(() => {
     const option = visibleOptions[activeOptionIndex];
@@ -64,7 +76,8 @@ export function SearchListDialog({
     }
 
     scrollboxRef.current?.scrollChildIntoView(getOptionRowId(option.id));
-  }, [activeOptionIndex, visibleOptions]);
+    onActiveOptionChange?.(option);
+  }, [activeOptionIndex, onActiveOptionChange, visibleOptions]);
 
   const { isActiveLayer } = useTuiLayer({
     onKey: useCallback(
@@ -210,8 +223,8 @@ function getOptionRowId(id: string) {
   return `search-list-option-${id}`;
 }
 
-function filterOptions(
-  options: readonly SearchListDialogOption[],
+function filterOptions<TId extends string>(
+  options: readonly SearchListDialogOption<TId>[],
   query: string,
 ) {
   const normalizedQuery = query.trim().toLowerCase();

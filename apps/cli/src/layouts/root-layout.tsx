@@ -1,7 +1,9 @@
 import { Outlet } from "react-router";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 
 export function RootLayout() {
+  const theme = useTheme();
+
   return (
     <box
       flexDirection="column"

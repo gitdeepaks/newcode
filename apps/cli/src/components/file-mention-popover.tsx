@@ -1,6 +1,6 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useLayoutEffect, useRef } from "react";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 
 export type FileMentionOption = {
   path: string;
@@ -16,9 +16,6 @@ type FileMentionPopoverProps = {
   bottom: number;
 };
 
-const popoverBackground = "#1E1E1E";
-const activeBackground = "#FDB082";
-const activeText = "#050505";
 const visibleOptionCount = 10;
 
 function getOptionRowId(index: number) {
@@ -33,6 +30,7 @@ export function FileMentionPopover({
   width,
   bottom,
 }: FileMentionPopoverProps) {
+  const theme = useTheme();
   const scrollboxRef = useRef<ScrollBoxRenderable>(null);
 
   useLayoutEffect(() => {
@@ -49,6 +47,9 @@ export function FileMentionPopover({
 
   const scrollboxWidth = Math.max(1, width - 2);
   const visibleHeight = Math.min(visibleOptionCount, options.length);
+  const popoverBackground = theme.elevatedSurface;
+  const activeBackground = theme.selectedBackground;
+  const activeText = theme.inverseText;
 
   return (
     <box

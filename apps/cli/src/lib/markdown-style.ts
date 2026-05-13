@@ -1,26 +1,29 @@
 import { SyntaxStyle } from "@opentui/core";
-import { theme } from "./theme";
+import type { Theme } from "./theme";
 
 /**
  * Default syntax style used by the chat markdown renderer. Created lazily so
  * we don't pay the cost on import in non-chat code paths.
  */
+let cachedTheme: Theme | null = null;
 let cached: SyntaxStyle | null = null;
 
-export function getMarkdownSyntaxStyle(): SyntaxStyle {
-  if (cached) {
+export function getMarkdownSyntaxStyle(theme: Theme): SyntaxStyle {
+  if (cached && cachedTheme === theme) {
     return cached;
   }
 
+  cachedTheme = theme;
+
   cached = SyntaxStyle.fromStyles({
-    keyword: { fg: "#ff7b72" },
-    string: { fg: "#a5d6ff" },
-    number: { fg: "#79c0ff" },
+    keyword: { fg: theme.syntax.keyword },
+    string: { fg: theme.syntax.string },
+    number: { fg: theme.syntax.number },
     comment: { fg: theme.textMuted, italic: true },
-    function: { fg: "#d2a8ff" },
-    type: { fg: "#ffa657" },
+    function: { fg: theme.syntax.function },
+    type: { fg: theme.syntax.type },
     variable: { fg: theme.text },
-    property: { fg: "#79c0ff" },
+    property: { fg: theme.syntax.property },
     operator: { fg: theme.textSecondary },
     punctuation: { fg: theme.textSecondary },
 
@@ -30,7 +33,7 @@ export function getMarkdownSyntaxStyle(): SyntaxStyle {
     "markup.link": { fg: theme.accent, underline: true },
     "markup.list": { fg: theme.textSecondary },
     "markup.quote": { fg: theme.textMuted, italic: true },
-    "markup.raw": { fg: "#a5d6ff" },
+    "markup.raw": { fg: theme.syntax.raw },
   });
 
   return cached;

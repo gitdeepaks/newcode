@@ -6,14 +6,12 @@ import { useFileMentionMenu } from "../hooks/use-file-mention-menu";
 import { usePromptCommandMenu } from "../hooks/use-prompt-command-menu";
 import { getModeColor } from "../lib/mode-style";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { FileMentionPopover } from "./file-mention-popover";
 import { PromptCommandPopover } from "./prompt-command-popover";
 
 const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0);
-
-const promptBackground = "#1E1E1E";
 
 type PromptTextAreaProps = {
   onSubmitPrompt?: (prompt: string) => void;
@@ -34,6 +32,7 @@ export function PromptTextArea({
   placeholder = "Ask anything…",
   mode,
 }: PromptTextAreaProps) {
+  const theme = useTheme();
   const textareaRef = useRef<TextareaRenderable>(null);
   const commandMenu = usePromptCommandMenu({ onCommand });
   const fileMentionMenu = useFileMentionMenu();
@@ -142,7 +141,8 @@ export function PromptTextArea({
     fileMentionMenu.updatePrompt(prompt);
   }
 
-  const modeColor = mode ? getModeColor(mode) : theme.accent;
+  const promptBackground = theme.elevatedSurface;
+  const modeColor = mode ? getModeColor(theme, mode) : theme.accent;
   const borderColor = disabled ? theme.borderSubtle : modeColor;
   const modeLabel = mode ? getModeConfig(mode).label : undefined;
   const promptHeight = modeLabel ? 6 : 4;

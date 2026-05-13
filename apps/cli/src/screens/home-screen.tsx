@@ -6,7 +6,7 @@ import { PromptTextArea } from "../components/prompt-text-area";
 
 import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import type { ChatLocationState } from "../routes/state";
 
@@ -14,6 +14,7 @@ const MAX_CONTENT_WIDTH = 94;
 const HORIZONTAL_PADDING = 4;
 
 export function HomeScreen() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const handleCommand = usePromptCommand();
   const { width } = useTerminalDimensions();
@@ -82,7 +83,7 @@ export function HomeScreen() {
           gap={2}
         >
           <box flexDirection="row" alignItems="flex-end" gap={1}>
-            <ascii-font text="new" font="tiny" color="#808080" />
+            <ascii-font text="new" font="tiny" color={theme.logoMuted} />
             <ascii-font text="code" font="tiny" color={theme.text} />
           </box>
 

@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { theme } from "../lib/theme";
+import { type Theme, useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 
 type DialogOptions = {
@@ -38,14 +38,13 @@ type DialogOverlayProps = {
   children?: ReactNode;
 };
 
-const dialogBackground = "#141414";
-const overlayBackground = RGBA.fromValues(0, 0, 0, 0.65);
-
-export const dialogColors = {
-  background: dialogBackground,
-  activeOptionBackground: "#FDB082",
-  activeOptionText: "#050505",
-} as const;
+export function getDialogColors(theme: Theme) {
+  return {
+    background: theme.dialogSurface,
+    activeOptionBackground: theme.selectedBackground,
+    activeOptionText: theme.inverseText,
+  } as const;
+}
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 
@@ -90,7 +89,14 @@ export function useDialog() {
 }
 
 export function DialogOverlay({ children }: DialogOverlayProps) {
+  const theme = useTheme();
   const { closeDialog } = useDialog();
+  const overlayBackground = RGBA.fromValues(
+    theme.overlay.r,
+    theme.overlay.g,
+    theme.overlay.b,
+    theme.overlay.a,
+  );
 
   useTuiLayer({
     onKey: useCallback(
@@ -126,6 +132,7 @@ export function DialogOverlay({ children }: DialogOverlayProps) {
 }
 
 export function Dialog({ title, maxWidth = 96, children }: DialogProps) {
+  const theme = useTheme();
   const context = useContext(DialogContext);
   const closeDialog = context?.closeDialog;
   const dialogTitle = title ?? context?.title ?? "";
@@ -136,7 +143,7 @@ export function Dialog({ title, maxWidth = 96, children }: DialogProps) {
       width="80%"
       maxWidth={maxWidth}
       flexDirection="column"
-      backgroundColor={dialogBackground}
+      backgroundColor={theme.dialogSurface}
       paddingX={4}
       paddingY={2}
       gap={2}

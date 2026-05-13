@@ -18,7 +18,7 @@ import { PromptTextArea } from "../components/prompt-text-area";
 
 import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client } from "../lib/client";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { workspaceRoot } from "../lib/workspace-root";
 import { chatLocationStateSchema } from "../routes/state";
@@ -28,6 +28,7 @@ const MAX_COMPOSER_WIDTH = 120;
 const HORIZONTAL_PADDING = 4;
 
 export function ChatScreen() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const handleCommand = usePromptCommand();
   const location = useLocation();
@@ -241,7 +242,7 @@ export function ChatScreen() {
         },
       },
     }),
-    [],
+    [theme],
   );
 
   return (
@@ -306,6 +307,8 @@ export function ChatScreen() {
 }
 
 function ThinkingIndicator() {
+  const theme = useTheme();
+
   return (
     <box flexDirection="row" alignItems="center" gap={1} paddingX={1}>
       <text>

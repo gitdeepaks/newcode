@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 
 type StatusBarProps = {
   left?: ReactNode;
@@ -12,6 +12,8 @@ type StatusBarProps = {
  * <text> or <span> already, OR plain strings.
  */
 export function StatusBar({ left, right }: StatusBarProps) {
+  const theme = useTheme();
+
   return (
     <box
       border={["top"]}

@@ -1,4 +1,4 @@
-import { theme } from "../lib/theme";
+import { useTheme } from "../lib/theme";
 
 type KeyCapProps = {
   label: string;
@@ -6,6 +6,8 @@ type KeyCapProps = {
 
 /** Renders a small inline keyboard hint like ⌫ esc or ⏎ enter. */
 export function KeyCap({ label }: KeyCapProps) {
+  const theme = useTheme();
+
   return (
     <text>
       <span fg={theme.text} bg={theme.surfaceMuted}>

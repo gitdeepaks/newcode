@@ -1,7 +1,7 @@
 import type { Mode } from "newcode-ai";
-import { theme } from "./theme";
+import type { Theme } from "./theme";
 
-export function getModeColor(mode: Mode) {
+export function getModeColor(theme: Theme, mode: Mode) {
   switch (mode) {
     case "build":
       return theme.accent;
