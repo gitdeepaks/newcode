@@ -1,6 +1,5 @@
 export const themeNames = [
   "default",
-  "alternative",
   "dracula",
   "nord",
   "gruvbox",
