@@ -5,7 +5,11 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type ChatAddToolOutputFunction,
 } from "ai";
-import { DEFAULT_MODE, getNextMode, type Mode } from "newcode-ai";
+import {
+  DEFAULT_MODE,
+  getNextMode,
+  type Mode,
+} from "newcode-ai";
 import {
   createOnToolCall,
   validateCodingAgentMessages,
@@ -13,12 +17,13 @@ import {
 import type { CodingAgentUIMessage } from "newcode-ai/server";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { ChatErrorMessage, ChatMessage } from "../components/chat/chat-message";
+import { ChatMessage } from "../components/chat/chat-message";
 import { PromptTextArea } from "../components/prompt-text-area";
 import { toast } from "../components/toast";
 
 import { usePromptCommand } from "../hooks/use-prompt-command";
 import { client, getAuthHeaders } from "../lib/client";
+import { useModelSelection } from "../lib/model-selection";
 import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { workspaceRoot } from "../lib/workspace-root";
@@ -32,6 +37,7 @@ export function ChatScreen() {
   const theme = useTheme();
   const navigate = useNavigate();
   const handleCommand = usePromptCommand();
+  const { modelId } = useModelSelection();
   const location = useLocation();
   const { id: sessionId } = useParams<{ id: string }>();
   const { width, height } = useTerminalDimensions();
@@ -43,10 +49,12 @@ export function ChatScreen() {
     () => new Map<string, Mode>(),
   );
   const modeRef = useRef(mode);
+  const modelIdRef = useRef(modelId);
   const pendingMessageModeRef = useRef<Mode | null>(null);
   const lastToastedErrorRef = useRef<Error | null>(null);
 
   modeRef.current = mode;
+  modelIdRef.current = modelId;
 
   useEffect(() => {
     setMode(routeState.mode);
@@ -60,8 +68,8 @@ export function ChatScreen() {
           .toString(),
         // `useChat` keeps one Chat instance for a stable id, so transport
         // changes alone do not replace the underlying transport. Resolve the
-        // body lazily so each request sees the latest mode.
-        body: () => ({ mode: modeRef.current }),
+        // body lazily so each request sees the latest mode and model.
+        body: () => ({ mode: modeRef.current, modelId: modelIdRef.current }),
         headers: getAuthHeaders,
       }),
     [sessionId],
@@ -194,11 +202,9 @@ export function ChatScreen() {
 
   const isBusy = status === "submitted" || status === "streaming";
   const isStreaming = status === "streaming";
-  const shouldRenderChatError =
-    error !== undefined && messages.at(-1)?.role === "assistant";
 
   useEffect(() => {
-    if (!error || shouldRenderChatError || lastToastedErrorRef.current === error) {
+    if (!error || lastToastedErrorRef.current === error) {
       return;
     }
 
@@ -207,7 +213,7 @@ export function ChatScreen() {
       description: getChatRequestFailureDescription(error),
       duration: 9000,
     });
-  }, [error, shouldRenderChatError]);
+  }, [error]);
 
   useTuiLayer({
     onKey: useCallback(
@@ -290,10 +296,6 @@ export function ChatScreen() {
               />
             ))}
 
-            {shouldRenderChatError ? (
-              <ChatErrorMessage error={error} width={contentWidth} />
-            ) : null}
-
             {status === "submitted" ? <ThinkingIndicator /> : null}
           </box>
         </box>
@@ -313,6 +315,7 @@ export function ChatScreen() {
           disabled={isBusy || !hydrated}
           placeholder="Send a message…"
           mode={mode}
+          modelId={modelId}
           onSubmitPrompt={(text) => {
             submitPrompt(text);
           }}

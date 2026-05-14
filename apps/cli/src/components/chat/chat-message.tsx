@@ -161,9 +161,9 @@ function ReasoningPart({
     <box flexDirection="column" gap={0}>
       <text>
         <span fg={theme.textMuted}>
-          <strong>Reasoning</strong>
+          <strong>Thinking</strong>
         </span>
-        {isStreaming ? <span fg={theme.textMuted}> · thinking…</span> : null}
+        {isStreaming ? <span fg={theme.textMuted}> · reasoning…</span> : null}
       </text>
       <text fg={theme.textSecondary} selectable>
         {part.text || " "}

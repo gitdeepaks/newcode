@@ -3,11 +3,13 @@ import { DEFAULT_MODE } from "newcode-ai";
 import { createElement } from "react";
 import { useNavigate } from "react-router";
 import { useDialog } from "../components/dialog";
+import { ModelDialog } from "../components/model-dialog";
 import { SessionDialog } from "../components/session-dialog";
 import { ThemeListDialog } from "../components/theme-list-dialog";
 import { toast } from "../components/toast";
 import { authConfigService } from "../lib/auth/auth-config";
 import { loginWithBrowser, logoutAuthSession } from "../lib/auth/oauth";
+import { useModelSelection } from "../lib/model-selection";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import type { ChatLocationState } from "../routes/state";
 
@@ -15,6 +17,7 @@ export function usePromptCommand() {
   const navigate = useNavigate();
   const renderer = useRenderer();
   const { closeDialog, openDialog } = useDialog();
+  const { modelId, setModelId } = useModelSelection();
 
   async function login() {
     try {
@@ -105,6 +108,16 @@ export function usePromptCommand() {
           title: "Theme",
           content: createElement(ThemeListDialog, {
             onThemeSelect: closeDialog,
+          }),
+        });
+        return;
+      case "/model":
+        openDialog({
+          title: "Model",
+          content: createElement(ModelDialog, {
+            activeModelId: modelId,
+            onSelect: setModelId,
+            onClose: closeDialog,
           }),
         });
         return;

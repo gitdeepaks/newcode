@@ -1,5 +1,10 @@
 import type { TextareaRenderable } from "@opentui/core";
-import { getModeConfig, type Mode } from "newcode-ai";
+import {
+  availableCodingModels,
+  getModeConfig,
+  type CodingModelId,
+  type Mode,
+} from "newcode-ai";
 import { useCallback, useRef } from "react";
 import { z } from "zod";
 import { useFileMentionMenu } from "../hooks/use-file-mention-menu";
@@ -21,6 +26,7 @@ type PromptTextAreaProps = {
   width?: number;
   placeholder?: string;
   mode?: Mode;
+  modelId?: CodingModelId;
 };
 
 export function PromptTextArea({
@@ -31,6 +37,7 @@ export function PromptTextArea({
   width = 82,
   placeholder = "Ask anything…",
   mode,
+  modelId,
 }: PromptTextAreaProps) {
   const theme = useTheme();
   const textareaRef = useRef<TextareaRenderable>(null);
@@ -145,7 +152,10 @@ export function PromptTextArea({
   const modeColor = mode ? getModeColor(theme, mode) : theme.accent;
   const borderColor = disabled ? theme.borderSubtle : modeColor;
   const modeLabel = mode ? getModeConfig(mode).label : undefined;
-  const promptHeight = modeLabel ? 6 : 4;
+  const modelConfig = modelId
+    ? availableCodingModels.find((model) => model.id === modelId)
+    : undefined;
+  const promptHeight = modeLabel || modelConfig ? 6 : 4;
 
   return (
     <box width={width} position="relative" flexShrink={0} overflow="visible">
@@ -219,16 +229,25 @@ export function PromptTextArea({
           selectionBg={theme.selection}
         />
 
-        {modeLabel ? (
-          <box paddingX={1}>
+        {modeLabel || modelConfig ? (
+          <box paddingX={1} flexDirection="row" gap={1}>
             <text>
-              <span fg={modeColor}>{modeLabel}</span>
+              {modeLabel ? <span fg={modeColor}>{modeLabel}</span> : null}
+              {modeLabel && modelConfig ? <span fg={theme.textMuted}> · </span> : null}
+              {modelConfig ? <span fg={theme.text}>{modelConfig.label}</span> : null}
+              {modelConfig ? (
+                <span fg={theme.textMuted}> {formatProvider(modelConfig.provider)}</span>
+              ) : null}
             </text>
           </box>
         ) : null}
       </box>
     </box>
   );
+}
+
+function formatProvider(provider: string) {
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
 function getCursorPosition(prompt: string, offset: number) {

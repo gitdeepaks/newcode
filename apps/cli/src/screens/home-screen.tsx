@@ -1,5 +1,9 @@
 import { useTerminalDimensions } from "@opentui/react";
-import { DEFAULT_MODE, getNextMode, type Mode } from "newcode-ai";
+import {
+  DEFAULT_MODE,
+  getNextMode,
+  type Mode,
+} from "newcode-ai";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { PromptTextArea } from "../components/prompt-text-area";
@@ -9,6 +13,7 @@ import { usePromptCommand } from "../hooks/use-prompt-command";
 import { authConfigService, type AuthSession } from "../lib/auth/auth-config";
 import { getValidAuthSession } from "../lib/auth/oauth";
 import { client } from "../lib/client";
+import { useModelSelection } from "../lib/model-selection";
 import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import type { ChatLocationState } from "../routes/state";
@@ -26,6 +31,7 @@ export function HomeScreen() {
   const theme = useTheme();
   const navigate = useNavigate();
   const handleCommand = usePromptCommand();
+  const { modelId } = useModelSelection();
   const { width } = useTerminalDimensions();
   const [mode, setMode] = useState<Mode>(DEFAULT_MODE);
   const [pending, setPending] = useState(false);
@@ -142,6 +148,7 @@ export function HomeScreen() {
             disabled={pending}
             placeholder="Press Enter to open chat…"
             mode={mode}
+            modelId={modelId}
             onSubmitPrompt={(prompt) => {
               void handleSubmitPrompt(prompt);
             }}
