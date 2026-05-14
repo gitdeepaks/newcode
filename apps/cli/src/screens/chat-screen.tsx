@@ -15,9 +15,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { ChatErrorMessage, ChatMessage } from "../components/chat/chat-message";
 import { PromptTextArea } from "../components/prompt-text-area";
+import { toast } from "../components/toast";
 
 import { usePromptCommand } from "../hooks/use-prompt-command";
-import { client } from "../lib/client";
+import { client, getAuthHeaders } from "../lib/client";
 import { useTheme } from "../lib/theme";
 import { type TuiLayerKeyHandler, useTuiLayer } from "../lib/tui-layer-manager";
 import { workspaceRoot } from "../lib/workspace-root";
@@ -43,6 +44,7 @@ export function ChatScreen() {
   );
   const modeRef = useRef(mode);
   const pendingMessageModeRef = useRef<Mode | null>(null);
+  const lastToastedErrorRef = useRef<Error | null>(null);
 
   modeRef.current = mode;
 
@@ -60,6 +62,7 @@ export function ChatScreen() {
         // changes alone do not replace the underlying transport. Resolve the
         // body lazily so each request sees the latest mode.
         body: () => ({ mode: modeRef.current }),
+        headers: getAuthHeaders,
       }),
     [sessionId],
   );
@@ -191,6 +194,20 @@ export function ChatScreen() {
 
   const isBusy = status === "submitted" || status === "streaming";
   const isStreaming = status === "streaming";
+  const shouldRenderChatError =
+    error !== undefined && messages.at(-1)?.role === "assistant";
+
+  useEffect(() => {
+    if (!error || shouldRenderChatError || lastToastedErrorRef.current === error) {
+      return;
+    }
+
+    lastToastedErrorRef.current = error;
+    toast.error("Message was not sent", {
+      description: getChatRequestFailureDescription(error),
+      duration: 9000,
+    });
+  }, [error, shouldRenderChatError]);
 
   useTuiLayer({
     onKey: useCallback(
@@ -273,7 +290,7 @@ export function ChatScreen() {
               />
             ))}
 
-            {error ? (
+            {shouldRenderChatError ? (
               <ChatErrorMessage error={error} width={contentWidth} />
             ) : null}
 
@@ -304,6 +321,16 @@ export function ChatScreen() {
       </box>
     </box>
   );
+}
+
+function getChatRequestFailureDescription(error: Error) {
+  const message = error.message.trim();
+
+  if (!message) {
+    return "The chat API failed without returning a reason. Check the server logs and try again.";
+  }
+
+  return `The chat API stopped the request: ${message}`;
 }
 
 function ThinkingIndicator() {

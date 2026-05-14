@@ -83,6 +83,14 @@ const promptCommands = definePromptCommands([
     description: "Change active model",
   },
   {
+    name: "/login",
+    description: "Sign in with Clerk",
+  },
+  {
+    name: "/logout",
+    description: "Sign out",
+  },
+  {
     name: "/theme",
     description: "Change active theme",
   },
