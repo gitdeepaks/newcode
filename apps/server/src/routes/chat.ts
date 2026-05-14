@@ -12,9 +12,13 @@ import {
   safeValidateUIMessages,
 } from "ai";
 import { Hono } from "hono";
-import { allCodingTools, modeSchema } from "newcode-ai";
 import {
-  CODING_AGENT_MODEL_ID,
+  allCodingTools,
+  codingModelIdSchema,
+  getCodingModel,
+  modeSchema,
+} from "newcode-ai";
+import {
   type CodingAgentUIMessage,
   createCodingAgent,
 } from "newcode-ai/server";
@@ -26,6 +30,7 @@ const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
   messages: z.array(z.unknown()).min(1),
   mode: modeSchema,
+  modelId: codingModelIdSchema,
 });
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
@@ -36,18 +41,20 @@ export const chatRoutes = new Hono<AuthVariables>().post(
   zValidator("json", chatRequestSchema),
   async (c) => {
     const { sessionId } = c.req.valid("param");
-    const { messages, mode } = c.req.valid("json");
+    const { messages, mode, modelId } = c.req.valid("json");
     const userId = c.get("userId");
+    const model = getCodingModel(modelId);
+    const missingApiKey = getMissingProviderApiKey(model.provider);
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (missingApiKey) {
       await prisma.sessionEvent.create({
         data: {
           kind: SessionEventKind.config_error,
-          payload: { reason: "ANTHROPIC_API_KEY missing" },
+          payload: { reason: `${missingApiKey} missing`, provider: model.provider },
         },
       });
       return c.text(
-        "ANTHROPIC_API_KEY is not set. Set ANTHROPIC_API_KEY and retry this completion.",
+        `${missingApiKey} is not set. Set ${missingApiKey} and retry this completion.`,
         500,
       );
     }
@@ -59,8 +66,9 @@ export const chatRoutes = new Hono<AuthVariables>().post(
       return c.json({ error: "Session not found" }, 404);
     }
 
+    const providerNeutralMessages = messages.map(removeProviderMetadata);
     const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
-      messages,
+      messages: providerNeutralMessages,
       tools: allCodingTools,
     });
     if (!validation.success) {
@@ -77,7 +85,7 @@ export const chatRoutes = new Hono<AuthVariables>().post(
       );
     }
 
-    const agent = createCodingAgent(mode);
+    const agent = createCodingAgent(mode, modelId);
 
     // Persist only the tail of the messages array — the rest is prior history
     // already written on previous turns. Upsert keyed by UIMessage.id so a
@@ -125,9 +133,13 @@ export const chatRoutes = new Hono<AuthVariables>().post(
         "Cache-Control": "no-cache",
       },
       originalMessages: validation.data,
-      sendReasoning: false,
+      sendReasoning: true,
       generateMessageId: generateId,
-      onFinish: async ({ responseMessage, isAborted, finishReason }) => {
+      onFinish: async ({ responseMessage: rawResponseMessage, isAborted, finishReason }) => {
+        const responseMessage = removeProviderMetadata(
+          rawResponseMessage,
+        ) as CodingAgentUIMessage;
+
         // Preserve the original UI messages for id reuse on automatic tool
         // roundtrips, but prune older model history before the next LLM call.
         await prisma.message.upsert({
@@ -137,11 +149,11 @@ export const chatRoutes = new Hono<AuthVariables>().post(
             sessionId: session.id,
             role: MessageRole.assistant,
             mode: toDbMode(mode),
-            model: CODING_AGENT_MODEL_ID,
+            model: modelId,
             payload: toJsonPayload(responseMessage),
           },
           update: {
-            model: CODING_AGENT_MODEL_ID,
+            model: modelId,
             payload: toJsonPayload(responseMessage),
           },
         });
@@ -172,3 +184,37 @@ export const chatRoutes = new Hono<AuthVariables>().post(
     });
   },
 );
+
+function getMissingProviderApiKey(provider: ReturnType<typeof getCodingModel>["provider"]) {
+  switch (provider) {
+    case "anthropic":
+      return process.env.ANTHROPIC_API_KEY ? null : "ANTHROPIC_API_KEY";
+    case "openai":
+      return process.env.OPENAI_API_KEY ? null : "OPENAI_API_KEY";
+  }
+}
+
+function removeProviderMetadata(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(removeProviderMetadata);
+  }
+
+  if (!isPlainObject(value)) {
+    return value;
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (key === "providerMetadata" || key === "providerOptions") {
+      continue;
+    }
+
+    result[key] = removeProviderMetadata(nestedValue);
+  }
+
+  return result;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

@@ -1,17 +1,61 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { ToolLoopAgent, stepCountIs, type InferUITools, type UIMessage } from "ai";
+import { openai } from "@ai-sdk/openai";
+import {
+  ToolLoopAgent,
+  stepCountIs,
+  type InferUITools,
+  type LanguageModel,
+  type UIMessage,
+} from "ai";
 import { getSystemInstructions } from "./instructions";
+import {
+  DEFAULT_CODING_MODEL_ID,
+  getCodingModel,
+  type CodingModelConfig,
+  type CodingModelId,
+} from "./models";
 import { DEFAULT_MODE, type Mode } from "./modes";
 import { allCodingTools, getCodingToolsForMode } from "./tools/registry";
 
-// Single hardcoded model for now. When the app goes multi-model, this becomes
-// per-request (request body or session config) and is what we persist on the
-// assistant message row.
-export const CODING_AGENT_MODEL_ID = "claude-sonnet-4-6";
+function createCodingLanguageModel(modelId: CodingModelId): LanguageModel {
+  const model = getCodingModel(modelId);
 
-export function createCodingAgent(mode: Mode = DEFAULT_MODE) {
+  switch (model.provider) {
+    case "anthropic":
+      return anthropic(model.id);
+    case "openai":
+      return openai(model.id);
+  }
+}
+
+type CodingProviderOptions = Record<
+  string,
+  Record<string, boolean | string | Record<string, string>>
+>;
+
+function getCodingProviderOptions(
+  model: CodingModelConfig,
+): CodingProviderOptions | undefined {
+  switch (model.id) {
+    case "claude-sonnet-4-6":
+      return {
+        anthropic: {
+          thinking: { type: "disabled" },
+        },
+      };
+    case "gpt-5.1":
+      return undefined;
+  }
+}
+
+export function createCodingAgent(
+  mode: Mode = DEFAULT_MODE,
+  modelId: CodingModelId = DEFAULT_CODING_MODEL_ID,
+) {
+  const modelConfig = getCodingModel(modelId);
+
   return new ToolLoopAgent({
-    model: anthropic(CODING_AGENT_MODEL_ID),
+    model: createCodingLanguageModel(modelConfig.id),
     // Anthropic counts max_tokens as a reservation against the per-minute
     // input-token rate limit, so leaving it at the model default (128k)
     // guarantees a 429 on small accounts. Keep this low so multi-step tool
@@ -24,11 +68,7 @@ export function createCodingAgent(mode: Mode = DEFAULT_MODE) {
     instructions: getSystemInstructions(mode),
     tools: getCodingToolsForMode(mode),
     stopWhen: stepCountIs(10),
-    providerOptions: {
-      anthropic: {
-        thinking: { type: "disabled" },
-      },
-    },
+    providerOptions: getCodingProviderOptions(modelConfig),
   });
 }
 

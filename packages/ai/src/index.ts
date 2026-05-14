@@ -6,3 +6,16 @@ export * from "./modes";
 export * from "./tools/specs";
 export { getSystemInstructions } from "./instructions";
 export { allCodingTools, getCodingToolsForMode } from "./tools/registry";
+export {
+  availableCodingModels,
+  codingModelIdSchema,
+  codingModelIds,
+  codingModelProviderSchema,
+  codingModelProviders,
+  codingModelSchema,
+  DEFAULT_CODING_MODEL_ID,
+  getCodingModel,
+  type CodingModelConfig,
+  type CodingModelId,
+  type CodingModelProvider,
+} from "./models";

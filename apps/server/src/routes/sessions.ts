@@ -53,6 +53,7 @@ export const sessionRoutes = new Hono<AuthVariables>()
       return c.json({
         messages: records.map((m) => ({
           mode: fromDbMode(m.mode),
+          model: m.model,
           payload: m.payload,
         })),
       });
