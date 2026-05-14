@@ -9,6 +9,7 @@ generator client {
 
 model Session {
   id        String   @id @default(cuid())
+  userId    String
   title     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -16,7 +17,7 @@ model Session {
   messages Message[]
   events   SessionEvent[]
 
-  @@index([updatedAt(sort: Desc)])
+  @@index([userId, updatedAt(sort: Desc)])
 }
 
 model Message {
