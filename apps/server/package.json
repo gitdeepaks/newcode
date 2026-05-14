@@ -13,12 +13,13 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.75",
+    "@clerk/backend": "^3.4.7",
     "@hono/zod-validator": "^0.7.6",
     "@newcode/db": "workspace:*",
     "@newcode/shared": "workspace:*",
     "ai": "^6.0.175",
-    "newcode-ai": "workspace:*",
     "hono": "^4.10.0",
+    "newcode-ai": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

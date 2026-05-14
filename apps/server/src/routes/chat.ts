@@ -20,6 +20,7 @@ import {
 } from "newcode-ai/server";
 import { z } from "zod";
 import { toDbMode } from "../lib/mode-mapping";
+import type { AuthVariables } from "../middleware/auth";
 
 const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
@@ -29,13 +30,14 @@ const chatRequestSchema = z.object({
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
 
-export const chatRoutes = new Hono().post(
+export const chatRoutes = new Hono<AuthVariables>().post(
   "/:sessionId",
   zValidator("param", chatParamSchema),
   zValidator("json", chatRequestSchema),
   async (c) => {
     const { sessionId } = c.req.valid("param");
     const { messages, mode } = c.req.valid("json");
+    const userId = c.get("userId");
 
     if (!process.env.ANTHROPIC_API_KEY) {
       await prisma.sessionEvent.create({
@@ -50,8 +52,8 @@ export const chatRoutes = new Hono().post(
       );
     }
 
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
+    const session = await prisma.session.findFirst({
+      where: { id: sessionId, userId },
     });
     if (!session) {
       return c.json({ error: "Session not found" }, 404);

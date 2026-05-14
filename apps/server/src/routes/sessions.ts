@@ -3,12 +3,16 @@ import { prisma } from "@newcode/db";
 import { Hono } from "hono";
 import { z } from "zod";
 import { fromDbMode } from "../lib/mode-mapping";
+import type { AuthVariables } from "../middleware/auth";
 
 const sessionParamSchema = z.object({ id: z.string().min(1) });
 
-export const sessionRoutes = new Hono()
+export const sessionRoutes = new Hono<AuthVariables>()
   .get("/", async (c) => {
+    const userId = c.get("userId");
+
     const sessions = await prisma.session.findMany({
+      where: { userId },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -20,7 +24,9 @@ export const sessionRoutes = new Hono()
     return c.json({ sessions });
   })
   .post("/", async (c) => {
-    const session = await prisma.session.create({ data: {} });
+    const userId = c.get("userId");
+
+    const session = await prisma.session.create({ data: { userId } });
     return c.json({ id: session.id }, 201);
   })
   .get(
@@ -28,8 +34,9 @@ export const sessionRoutes = new Hono()
     zValidator("param", sessionParamSchema),
     async (c) => {
       const { id } = c.req.valid("param");
+      const userId = c.get("userId");
 
-      const session = await prisma.session.findUnique({ where: { id } });
+      const session = await prisma.session.findFirst({ where: { id, userId } });
       if (!session) {
         return c.json({ error: "Session not found" }, 404);
       }
