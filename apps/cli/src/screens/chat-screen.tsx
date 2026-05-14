@@ -209,6 +209,14 @@ export function ChatScreen() {
     }
 
     lastToastedErrorRef.current = error;
+    if (isInsufficientCreditsError(error)) {
+      toast.error("Insufficient credits", {
+        description: "Run /upgrade to buy credits or /usage to view your balance.",
+        duration: 9000,
+      });
+      return;
+    }
+
     toast.error("Message was not sent", {
       description: getChatRequestFailureDescription(error),
       duration: 9000,
@@ -334,6 +342,15 @@ function getChatRequestFailureDescription(error: Error) {
   }
 
   return `The chat API stopped the request: ${message}`;
+}
+
+function isInsufficientCreditsError(error: Error) {
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("insufficient credits") ||
+    message.includes("insufficient_credits") ||
+    message.includes("402")
+  );
 }
 
 function ThinkingIndicator() {

@@ -91,6 +91,14 @@ const promptCommands = definePromptCommands([
     description: "Sign out",
   },
   {
+    name: "/upgrade",
+    description: "Buy credits",
+  },
+  {
+    name: "/usage",
+    description: "Show credits usage",
+  },
+  {
     name: "/theme",
     description: "Change active theme",
   },

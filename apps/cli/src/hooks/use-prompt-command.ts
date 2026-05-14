@@ -1,5 +1,6 @@
 import { useRenderer } from "@opentui/react";
 import { DEFAULT_MODE } from "newcode-ai";
+import open from "open";
 import { createElement } from "react";
 import { useNavigate } from "react-router";
 import { useDialog } from "../components/dialog";
@@ -7,8 +8,10 @@ import { ModelDialog } from "../components/model-dialog";
 import { SessionDialog } from "../components/session-dialog";
 import { ThemeListDialog } from "../components/theme-list-dialog";
 import { toast } from "../components/toast";
+import { UsageDialog } from "../components/usage-dialog";
 import { authConfigService } from "../lib/auth/auth-config";
 import { loginWithBrowser, logoutAuthSession } from "../lib/auth/oauth";
+import { client } from "../lib/client";
 import { useModelSelection } from "../lib/model-selection";
 import type { PromptCommandInvocation } from "../lib/prompt-commands";
 import type { ChatLocationState } from "../routes/state";
@@ -83,6 +86,46 @@ export function usePromptCommand() {
     });
   }
 
+  async function upgrade() {
+    let checkoutUrl: string | undefined;
+
+    try {
+      const res = await client.payments.checkout.$post({ json: {} });
+
+      if (res.status === 401) {
+        toast.warning("Sign in required", {
+          description: "Run /login before starting checkout.",
+          duration: 7000,
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error("Could not start checkout", {
+          description: getPaymentRequestFailureDescription(res.status),
+          duration: 9000,
+        });
+        return;
+      }
+
+      const checkout = await res.json();
+      checkoutUrl = checkout.url;
+      await open(checkout.url);
+
+      toast.success("Checkout opened", {
+        description: "Complete the Polar checkout in your browser, then run /usage to refresh your balance.",
+        duration: 8000,
+      });
+    } catch (error) {
+      toast.error("Could not open checkout", {
+        description: checkoutUrl
+          ? `Open this URL manually: ${checkoutUrl}`
+          : `Checkout failed before a URL was created: ${getErrorMessage(error)}`,
+        duration: 10_000,
+      });
+    }
+  }
+
   return (command: PromptCommandInvocation) => {
     switch (command.name) {
       case "/exit":
@@ -127,6 +170,15 @@ export function usePromptCommand() {
       case "/logout":
         void logout();
         return;
+      case "/upgrade":
+        void upgrade();
+        return;
+      case "/usage":
+        openDialog({
+          title: "Usage",
+          content: createElement(UsageDialog),
+        });
+        return;
       case "/info":
         toast.info("Heads up", {
           description: "This is an informational message. Nothing failed and no action is required.",
@@ -157,4 +209,16 @@ function getSignedInDescription(identity: string | undefined) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getPaymentRequestFailureDescription(status: number) {
+  if (status === 402) {
+    return "Run /upgrade to buy credits or /usage to view your balance.";
+  }
+
+  if (status >= 500) {
+    return "Payment service unavailable. Check the server logs and payment environment variables.";
+  }
+
+  return `The server returned HTTP ${status}. Try again or check the server logs.`;
 }

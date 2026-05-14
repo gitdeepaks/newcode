@@ -23,8 +23,10 @@ import {
   createCodingAgent,
 } from "newcode-ai/server";
 import { z } from "zod";
+import { getPaymentsService } from "../lib/payments";
 import { toDbMode } from "../lib/mode-mapping";
 import type { AuthVariables } from "../middleware/auth";
+import { type CreditVariables, requireCredits } from "../middleware/credits";
 
 const chatParamSchema = z.object({ sessionId: z.string().min(1) });
 const chatRequestSchema = z.object({
@@ -35,8 +37,9 @@ const chatRequestSchema = z.object({
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
 
-export const chatRoutes = new Hono<AuthVariables>().post(
+export const chatRoutes = new Hono<AuthVariables & CreditVariables>().post(
   "/:sessionId",
+  requireCredits(1),
   zValidator("param", chatParamSchema),
   zValidator("json", chatRequestSchema),
   async (c) => {
@@ -166,6 +169,31 @@ export const chatRoutes = new Hono<AuthVariables>().post(
             payload: { finishReason: finishReason ?? null },
           },
         });
+
+        if (!isAborted) {
+          try {
+            await getPaymentsService().ingestUsage({
+              externalCustomerId: userId,
+              credits: 1,
+              metadata: {
+                sessionId: session.id,
+                modelId,
+                mode,
+                finishReason: finishReason ?? "unknown",
+                aborted: false,
+              },
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await prisma.sessionEvent.create({
+              data: {
+                sessionId: session.id,
+                kind: SessionEventKind.stream_error,
+                payload: { message, source: "usage_ingestion" },
+              },
+            });
+          }
+        }
       },
       onError: (error) => {
         const message = error instanceof Error ? error.message : String(error);

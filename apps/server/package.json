@@ -16,6 +16,7 @@
     "@clerk/backend": "^3.4.7",
     "@hono/zod-validator": "^0.7.6",
     "@newcode/db": "workspace:*",
+    "@newcode/payments": "workspace:*",
     "@newcode/shared": "workspace:*",
     "ai": "^6.0.175",
     "hono": "^4.10.0",
