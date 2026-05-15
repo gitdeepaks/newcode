@@ -13,6 +13,7 @@
     "build:cli": "bun run --cwd ./apps/cli build",
     "check:server": "bun run --cwd ./apps/server check",
     "check:cli": "bun run --cwd ./apps/cli check",
+    "package:cli-release": "bun run scripts/package-cli-release.ts",
     "db:generate": "bun run --cwd ./packages/db db:generate",
     "db:push": "bun run --cwd ./packages/db db:push",
     "db:studio": "bun run --cwd ./packages/db db:studio"

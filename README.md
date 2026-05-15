@@ -191,6 +191,54 @@ To remove the global link later:
 bun unlink @newcode/cli
 ```
 
+## Public CLI Install
+
+The simplest public distribution path is a GitHub Release tarball plus the repository install script. The installed CLI requires Bun on the user's machine.
+
+Install Bun first if needed:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+Install the latest `newcode` CLI release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/main/scripts/install.sh | sh
+```
+
+Then run:
+
+```bash
+newcode
+```
+
+To install a specific release tag:
+
+```bash
+NEWCODE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/main/scripts/install.sh | sh
+```
+
+The installer downloads `newcode-<platform>-<arch>.tar.gz` from GitHub Releases, extracts it to `~/.newcode`, and links `newcode` into `~/.local/bin`.
+
+## Publishing A CLI Release
+
+Build the CLI release tarball from the repository root:
+
+```bash
+SERVER_URL=<deployed-api-url> bun run package:cli-release
+```
+
+This writes a platform-specific artifact to `release/`, for example:
+
+```bash
+release/newcode-darwin-arm64.tar.gz
+```
+
+Upload that artifact to a GitHub Release for this repository.
+
+The CLI API endpoint is embedded at build time through `SERVER_URL`. The release flow does not require `www.newcodetui.in`; use whichever deployed API URL is active for that release.
+
 ## Building and Checking
 
 Run app-specific type checks:
