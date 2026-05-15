@@ -6,8 +6,10 @@ import {
   type ChatAddToolOutputFunction,
 } from "ai";
 import {
+  codingModelIdSchema,
   DEFAULT_MODE,
   getNextMode,
+  type CodingModelId,
   type Mode,
 } from "newcode-ai";
 import {
@@ -52,9 +54,17 @@ export function ChatScreen() {
   const [messageModes, setMessageModes] = useState(
     () => new Map<string, Mode>(),
   );
+  const [messageModels, setMessageModels] = useState(
+    () => new Map<string, CodingModelId>(),
+  );
+  const [messageDurations, setMessageDurations] = useState(
+    () => new Map<string, number>(),
+  );
   const modeRef = useRef(mode);
   const modelIdRef = useRef(modelId);
   const pendingMessageModeRef = useRef<Mode | null>(null);
+  const pendingMessageModelRef = useRef<CodingModelId | null>(null);
+  const pendingMessageStartedAtRef = useRef<number | null>(null);
   const lastToastedErrorRef = useRef<Error | null>(null);
 
   modeRef.current = mode;
@@ -111,6 +121,8 @@ export function ChatScreen() {
 
   function submitPrompt(text: string) {
     pendingMessageModeRef.current = modeRef.current;
+    pendingMessageModelRef.current = modelIdRef.current;
+    pendingMessageStartedAtRef.current = Date.now();
     void sendMessage({ text });
   }
 
@@ -156,6 +168,17 @@ export function ChatScreen() {
           ]),
         ),
       );
+      setMessageModels(
+        new Map(
+          messages.flatMap((message, index) => {
+            const parsedModel = codingModelIdSchema.safeParse(
+              data.messages[index]?.model,
+            );
+            return parsedModel.success ? [[message.id, parsedModel.data]] : [];
+          }),
+        ),
+      );
+      setMessageDurations(getResponseDurations(data.messages, messages));
       setHydrated(true);
     }
 
@@ -185,6 +208,49 @@ export function ChatScreen() {
       return nextModes;
     });
   }, [messages, messageModes]);
+
+  useEffect(() => {
+    if (messages.every((message) => messageModels.has(message.id))) {
+      return;
+    }
+
+    setMessageModels((currentModels) => {
+      const nextModels = new Map(currentModels);
+      for (const message of messages) {
+        if (!nextModels.has(message.id)) {
+          nextModels.set(
+            message.id,
+            pendingMessageModelRef.current ?? modelIdRef.current,
+          );
+        }
+      }
+      pendingMessageModelRef.current = null;
+      return nextModels;
+    });
+  }, [messages, messageModels]);
+
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming") {
+      return;
+    }
+
+    const lastMessage = messages.at(-1);
+    const startedAt = pendingMessageStartedAtRef.current;
+    if (!lastMessage || lastMessage.role !== "assistant" || startedAt === null) {
+      return;
+    }
+
+    setMessageDurations((currentDurations) => {
+      if (currentDurations.has(lastMessage.id)) {
+        return currentDurations;
+      }
+
+      const nextDurations = new Map(currentDurations);
+      nextDurations.set(lastMessage.id, Date.now() - startedAt);
+      return nextDurations;
+    });
+    pendingMessageStartedAtRef.current = null;
+  }, [messages, status]);
 
   useEffect(() => {
     if (
@@ -313,6 +379,8 @@ export function ChatScreen() {
                   message={message}
                   width={contentWidth}
                   mode={messageModes.get(message.id) ?? mode}
+                  modelId={messageModels.get(message.id)}
+                  durationMs={messageDurations.get(message.id)}
                   streaming={
                     isStreaming && message === messages[messages.length - 1]
                   }
@@ -353,6 +421,33 @@ export function ChatScreen() {
       </box>
     </box>
   );
+}
+
+function getResponseDurations(
+  records: { createdAt: string }[],
+  messages: CodingAgentUIMessage[],
+) {
+  const durations = new Map<string, number>();
+  let lastUserCreatedAt: number | null = null;
+
+  for (let index = 0; index < messages.length; index++) {
+    const message = messages[index];
+    const createdAt = Date.parse(records[index]?.createdAt ?? "");
+    if (!Number.isFinite(createdAt)) {
+      continue;
+    }
+
+    if (message.role === "user") {
+      lastUserCreatedAt = createdAt;
+      continue;
+    }
+
+    if (message.role === "assistant" && lastUserCreatedAt !== null) {
+      durations.set(message.id, createdAt - lastUserCreatedAt);
+    }
+  }
+
+  return durations;
 }
 
 function getChatRequestFailureDescription(error: Error) {

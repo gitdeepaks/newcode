@@ -9,7 +9,7 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from "ai";
-import type { Mode } from "newcode-ai";
+import { getCodingModel, type CodingModelId, type Mode } from "newcode-ai";
 import { getMarkdownSyntaxStyle } from "../../lib/markdown-style";
 import { getModeColor } from "../../lib/mode-style";
 import { useTheme } from "../../lib/theme";
@@ -20,6 +20,8 @@ type ChatMessageProps = {
   message: UIMessage;
   width: number;
   mode: Mode;
+  modelId?: CodingModelId;
+  durationMs?: number;
   streaming?: boolean;
 };
 
@@ -56,7 +58,14 @@ export function ChatErrorMessage({
   );
 }
 
-export function ChatMessage({ message, width, mode, streaming }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  width,
+  mode,
+  modelId,
+  durationMs,
+  streaming,
+}: ChatMessageProps) {
   const theme = useTheme();
   const isUser = message.role === "user";
   const modeColor = getModeColor(theme, mode);
@@ -74,6 +83,12 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
     return (
       <box flexDirection="column" width={width} paddingX={2} gap={2}>
         {parts}
+        <AssistantMessageMeta
+          mode={mode}
+          modelId={modelId}
+          durationMs={durationMs}
+          color={modeColor}
+        />
       </box>
     );
   }
@@ -92,6 +107,46 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
       </box>
     </box>
   );
+}
+
+function AssistantMessageMeta({
+  mode,
+  modelId,
+  durationMs,
+  color,
+}: {
+  mode: Mode;
+  modelId?: CodingModelId;
+  durationMs?: number;
+  color: string;
+}) {
+  const theme = useTheme();
+  const modelLabel = modelId ? getCodingModel(modelId).label : undefined;
+  const durationLabel = formatDuration(durationMs);
+
+  return (
+    <text>
+      <span fg={color}>▣</span>
+      <span fg={theme.text}>  </span>
+      <span fg={theme.text}>
+        <strong>{formatMode(mode)}</strong>
+      </span>
+      {modelLabel ? <span fg={theme.textMuted}> · {modelLabel}</span> : null}
+      {durationLabel ? <span fg={theme.textMuted}> · {durationLabel}</span> : null}
+    </text>
+  );
+}
+
+function formatMode(mode: Mode) {
+  return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+function formatDuration(durationMs?: number) {
+  if (durationMs === undefined || !Number.isFinite(durationMs) || durationMs < 0) {
+    return undefined;
+  }
+
+  return `${(durationMs / 1000).toFixed(1)}s`;
 }
 
 type MessagePartProps = {
