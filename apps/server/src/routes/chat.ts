@@ -7,6 +7,7 @@ import {
 } from "@newcode/db";
 import {
   convertToModelMessages,
+  consumeStream,
   generateId,
   pruneMessages,
   safeValidateUIMessages,
@@ -129,6 +130,7 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>().post(
 
     const result = await agent.stream({
       prompt: prunedModelMessages,
+      abortSignal: c.req.raw.signal,
     });
 
     return result.toUIMessageStreamResponse({
@@ -137,6 +139,7 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>().post(
       },
       originalMessages: validation.data,
       sendReasoning: true,
+      consumeSseStream: consumeStream,
       generateMessageId: generateId,
       onFinish: async ({ responseMessage: rawResponseMessage, isAborted, finishReason }) => {
         const responseMessage = removeProviderMetadata(

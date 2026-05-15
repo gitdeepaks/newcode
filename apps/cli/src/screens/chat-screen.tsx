@@ -99,7 +99,7 @@ export function ChatScreen() {
     [mode],
   );
 
-  const { messages, sendMessage, setMessages, status, error, addToolOutput } =
+  const { messages, sendMessage, setMessages, status, error, addToolOutput, stop } =
     useChat<CodingAgentUIMessage>({
       id: sessionId,
       transport,
@@ -231,6 +231,11 @@ export function ChatScreen() {
     onKey: useCallback(
       ((key) => {
         if (key.name === "escape") {
+          if (isBusy) {
+            void stop();
+            return true;
+          }
+
           navigate("/");
           return true;
         }
@@ -249,7 +254,7 @@ export function ChatScreen() {
         setMode((currentMode) => getNextMode(currentMode));
         return true;
       }) satisfies TuiLayerKeyHandler,
-      [isBusy, navigate],
+      [isBusy, navigate, stop],
     ),
   });
 
