@@ -32,6 +32,10 @@ import { chatLocationStateSchema } from "../routes/state";
 const MAX_CONTENT_WIDTH = 120;
 const MAX_COMPOSER_WIDTH = 120;
 const HORIZONTAL_PADDING = 4;
+const COMPOSER_HEIGHT = 6;
+const COMPOSER_VERTICAL_PADDING = 1;
+const CHAT_COMPOSER_GAP = 1;
+const COMPOSER_SHELL_HEIGHT = COMPOSER_HEIGHT + COMPOSER_VERTICAL_PADDING * 2;
 
 export function ChatScreen() {
   const theme = useTheme();
@@ -257,8 +261,10 @@ export function ChatScreen() {
     32,
     Math.min(MAX_COMPOSER_WIDTH, width - HORIZONTAL_PADDING),
   );
-  const chatViewportHeight = Math.max(1, height - 8);
-
+  const chatViewportHeight = Math.max(
+    1,
+    height - COMPOSER_SHELL_HEIGHT - CHAT_COMPOSER_GAP,
+  );
   const scrollboxStyle = useMemo(
     () => ({
       rootOptions: { backgroundColor: theme.bg },
@@ -277,44 +283,54 @@ export function ChatScreen() {
   );
 
   return (
-    <box flexDirection="column" flexGrow={1}>
-      <scrollbox
-        height={chatViewportHeight}
-        flexDirection="column"
-        stickyScroll
-        stickyStart="bottom"
-        style={scrollboxStyle}
-      >
-        <box
-          flexDirection="row"
-          justifyContent="center"
-          paddingX={2}
-          paddingY={1}
+    <box flexDirection="column" width={width} height={height} backgroundColor={theme.bg}>
+      <box width={width} height={chatViewportHeight} overflow="hidden" flexShrink={0}>
+        <scrollbox
+          width={width}
+          height={chatViewportHeight}
+          flexDirection="column"
+          stickyScroll
+          stickyStart="bottom"
+          style={scrollboxStyle}
         >
-          <box width={contentWidth} flexDirection="column" gap={2}>
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                message={message}
-                width={contentWidth}
-                mode={messageModes.get(message.id) ?? mode}
-                streaming={
-                  isStreaming && message === messages[messages.length - 1]
-                }
-              />
-            ))}
+          <box
+            width={width}
+            flexDirection="row"
+            justifyContent="center"
+            paddingX={2}
+            paddingTop={1}
+            paddingBottom={1}
+          >
+            <box width={contentWidth} flexDirection="column" gap={2}>
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  width={contentWidth}
+                  mode={messageModes.get(message.id) ?? mode}
+                  streaming={
+                    isStreaming && message === messages[messages.length - 1]
+                  }
+                />
+              ))}
 
-            {status === "submitted" ? <ThinkingIndicator /> : null}
+              {status === "submitted" ? <ThinkingIndicator /> : null}
+            </box>
           </box>
-        </box>
-      </scrollbox>
+        </scrollbox>
+      </box>
+
+      <box height={CHAT_COMPOSER_GAP} flexShrink={0} backgroundColor={theme.bg} />
 
       <box
+        width={width}
+        height={COMPOSER_SHELL_HEIGHT}
         flexDirection="row"
         justifyContent="center"
         paddingX={2}
-        paddingY={1}
+        paddingY={COMPOSER_VERTICAL_PADDING}
         backgroundColor={theme.bg}
+        overflow="hidden"
         flexShrink={0}
       >
         <PromptTextArea
@@ -357,10 +373,9 @@ function ThinkingIndicator() {
   const theme = useTheme();
 
   return (
-    <box flexDirection="row" alignItems="center" gap={1} paddingX={1}>
+    <box flexDirection="row" alignItems="center" gap={1} paddingX={2}>
       <text>
-        <span fg={theme.accent}>●</span>
-        <span fg={theme.textMuted}> thinking…</span>
+        <span fg={theme.textMuted}>Thinking...</span>
       </text>
     </box>
   );

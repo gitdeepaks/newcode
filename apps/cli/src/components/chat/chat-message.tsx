@@ -72,7 +72,7 @@ export function ChatMessage({ message, width, mode, streaming }: ChatMessageProp
 
   if (!isUser) {
     return (
-      <box flexDirection="column" width={width} paddingX={2} gap={1}>
+      <box flexDirection="column" width={width} paddingX={2} gap={2}>
         {parts}
       </box>
     );
@@ -105,7 +105,7 @@ function MessagePart({ part, role, streaming }: MessagePartProps) {
     return <TextPart part={part} role={role} streaming={streaming} />;
   }
   if (isReasoningUIPart(part)) {
-    return <ReasoningPart part={part} streaming={streaming} />;
+    return <ReasoningPart part={part} />;
   }
   if (isToolUIPart(part)) {
     return <ToolPart part={part} />;
@@ -147,25 +147,12 @@ function TextPart({ part, role, streaming }: TextPartProps) {
   );
 }
 
-function ReasoningPart({
-  part,
-  streaming,
-}: {
-  part: ReasoningUIPart;
-  streaming: boolean;
-}) {
+function ReasoningPart({ part }: { part: ReasoningUIPart }) {
   const theme = useTheme();
-  const isStreaming = streaming && part.state === "streaming";
 
   return (
-    <box flexDirection="column" gap={0}>
-      <text>
-        <span fg={theme.textMuted}>
-          <strong>Thinking</strong>
-        </span>
-        {isStreaming ? <span fg={theme.textMuted}> · reasoning…</span> : null}
-      </text>
-      <text fg={theme.textSecondary} selectable>
+    <box border={["left"]} borderColor={theme.textMuted} paddingLeft={1}>
+      <text fg={theme.textMuted} selectable>
         {part.text || " "}
       </text>
     </box>
@@ -179,83 +166,41 @@ function ToolPart({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
   switch (part.state) {
     case "input-available":
       return (
-        <ToolHeader glyph="▶" color={theme.accent} name={name}>
-          <PreviewLine label="input" value={part.input} />
-        </ToolHeader>
+        <ToolLine color={theme.textMuted} name={name} state="running" />
       );
     case "output-available":
       return (
-        <ToolHeader glyph="✓" color={theme.success} name={name}>
-          <PreviewLine label="output" value={part.output} />
-        </ToolHeader>
+        <ToolLine color={theme.textMuted} name={name} state="done" />
       );
     case "output-error":
       return (
-        <ToolHeader glyph="✗" color={theme.danger} name={name}>
+        <box border={["left"]} borderColor={theme.textMuted} paddingLeft={1}>
           <text fg={theme.danger} selectable>
-            {part.errorText}
+            [tool: {name}] failed: {part.errorText}
           </text>
-        </ToolHeader>
+        </box>
       );
     default:
-      return <ToolHeader glyph="·" color={theme.textMuted} name={name} />;
+      return <ToolLine color={theme.textMuted} name={name} state="running" />;
   }
 }
 
-function ToolHeader({
-  glyph,
+function ToolLine({
   color,
   name,
-  children,
+  state,
 }: {
-  glyph: string;
   color: string;
   name: string;
-  children?: React.ReactNode;
+  state: "running" | "done";
 }) {
   const theme = useTheme();
 
   return (
-    <box flexDirection="column" gap={0}>
-      <text>
-        <span fg={color}>
-          <strong>{glyph} </strong>
-        </span>
-        <span fg={theme.text}>{name}</span>
+    <box border={["left"]} borderColor={theme.textMuted} paddingLeft={1}>
+      <text fg={color}>
+        [tool: {name}] {state}
       </text>
-      {children ? <box paddingLeft={2}>{children}</box> : null}
     </box>
   );
-}
-
-function PreviewLine({ label, value }: { label: string; value: unknown }) {
-  const theme = useTheme();
-
-  return (
-    <text>
-      <span fg={theme.textMuted}>{label}: </span>
-      <span fg={theme.textSecondary}>{previewValue(value)}</span>
-    </text>
-  );
-}
-
-function previewValue(value: unknown): string {
-  if (value === undefined || value === null) {
-    return "—";
-  }
-  if (typeof value === "string") {
-    return truncate(value, 200);
-  }
-  try {
-    return truncate(JSON.stringify(value), 200);
-  } catch {
-    return "[unserializable]";
-  }
-}
-
-function truncate(text: string, max: number): string {
-  if (text.length <= max) {
-    return text;
-  }
-  return `${text.slice(0, max - 1)}…`;
 }
