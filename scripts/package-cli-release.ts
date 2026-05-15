@@ -1,5 +1,5 @@
 import { $ } from "bun";
-import { cp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const serverUrl = process.env.SERVER_URL;
@@ -42,24 +42,11 @@ async function main() {
   await $`bun run build:cli`;
 
   await assertExists(join(cliDir, "dist", "index.js"), "CLI build output");
-  await assertExists(join(cliDir, "node_modules"), "CLI node_modules");
-
   await rm(stageDir, { recursive: true, force: true });
   await mkdir(stageDir, { recursive: true });
 
   await cp(join(cliDir, "bin"), join(stageDir, "bin"), { recursive: true });
   await cp(join(cliDir, "dist"), join(stageDir, "dist"), { recursive: true });
-  await mkdir(join(stageDir, "node_modules"), { recursive: true });
-
-  const skippedNodeModules = new Set([".bin", "@newcode", "@types", "newcode-ai", "typescript"]);
-  for (const entry of await readdir(join(cliDir, "node_modules"))) {
-    if (skippedNodeModules.has(entry)) continue;
-
-    await cp(join(cliDir, "node_modules", entry), join(stageDir, "node_modules", entry), {
-      recursive: true,
-      dereference: true,
-    });
-  }
 
   await writeFile(
     join(stageDir, "package.json"),
@@ -71,6 +58,13 @@ async function main() {
         bin: {
           newcode: "./bin/newcode",
         },
+        dependencies: {
+          "@opentui/core": "0.2.2",
+          "@opentui/react": "0.2.2",
+          react: "^19.2.4",
+          "react-reconciler": "^0.32.0",
+          "web-tree-sitter": "0.25.10",
+        },
       },
       null,
       2,
@@ -78,6 +72,7 @@ async function main() {
   );
 
   await $`chmod +x ${join(stageDir, "bin", "newcode")}`;
+  await $`bun install --production --cwd ${stageDir}`;
   await rm(artifactPath, { force: true });
   await $`tar -czf ${artifactPath} -C ${releaseDir} newcode`;
 

@@ -204,7 +204,7 @@ curl -fsSL https://bun.sh/install | bash
 Install the latest `newcode` CLI release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/master/scripts/install.sh | sh
 ```
 
 Then run:
@@ -216,7 +216,7 @@ newcode
 To install a specific release tag:
 
 ```bash
-NEWCODE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/main/scripts/install.sh | sh
+NEWCODE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/master/scripts/install.sh | sh
 ```
 
 The installer downloads `newcode-<platform>-<arch>.tar.gz` from GitHub Releases, extracts it to `~/.newcode`, and links `newcode` into `~/.local/bin`.
