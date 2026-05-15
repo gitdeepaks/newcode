@@ -3,10 +3,13 @@
   "module": "src/index.tsx",
   "type": "module",
   "private": true,
+  "bin": {
+    "newcode": "./bin/newcode"
+  },
   "scripts": {
     "dev": "bun --env-file=../../.env --watch run src/index.tsx",
     "start": "bun --env-file=../../.env run src/index.tsx",
-    "build": "bun build src/index.tsx --outdir dist --target bun",
+    "build": "bun build src/index.tsx --outdir dist --target bun --external '@opentui/*' --external react --external react-reconciler",
     "check": "bunx tsc --noEmit"
   },
   "devDependencies": {
