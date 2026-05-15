@@ -2,9 +2,11 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import {
   ToolLoopAgent,
+  generateText,
   stepCountIs,
   type InferUITools,
   type LanguageModel,
+  type ModelMessage,
   type UIMessage,
 } from "ai";
 import { getSystemInstructions } from "./instructions";
@@ -27,6 +29,10 @@ function createCodingLanguageModel(modelId: CodingModelId): LanguageModel {
       return openai(model.id);
   }
 }
+
+const RECOMMENDED_NEXT_PROMPT_SYSTEM =
+  "Given this coding conversation, suggest exactly one useful next user prompt. Return only the prompt text. Keep it under 160 characters.";
+const RECOMMENDED_NEXT_PROMPT_MODEL_ID = "gpt-5-nano" satisfies CodingModelId;
 
 type CodingProviderOptions = Record<
   string,
@@ -70,6 +76,28 @@ export function createCodingAgent(
     stopWhen: stepCountIs(10),
     providerOptions: getCodingProviderOptions(modelConfig),
   });
+}
+
+export async function generateRecommendedNextPrompt({
+  messages,
+  abortSignal,
+}: {
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+}) {
+  const modelConfig = getCodingModel(RECOMMENDED_NEXT_PROMPT_MODEL_ID);
+  const result = await generateText({
+    model: createCodingLanguageModel(modelConfig.id),
+    system: RECOMMENDED_NEXT_PROMPT_SYSTEM,
+    messages,
+    // GPT-5 Nano can spend a small hidden reasoning budget before emitting text.
+    maxOutputTokens: 600,
+    maxRetries: 0,
+    abortSignal,
+    providerOptions: getCodingProviderOptions(modelConfig),
+  });
+
+  return result.text.trim();
 }
 
 // Message history spans modes, so the UI message type needs the full coding

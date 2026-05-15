@@ -22,6 +22,7 @@ import {
 import {
   type CodingAgentUIMessage,
   createCodingAgent,
+  generateRecommendedNextPrompt,
 } from "newcode-ai/server";
 import { z } from "zod";
 import { getPaymentsService } from "../lib/payments";
@@ -35,15 +36,21 @@ const chatRequestSchema = z.object({
   mode: modeSchema,
   modelId: codingModelIdSchema,
 });
+const placeholderRequestSchema = z.object({
+  messages: z.array(z.unknown()).min(1),
+  mode: modeSchema,
+  modelId: codingModelIdSchema,
+});
 
 const AGENT_CONTEXT_MAX_MODEL_MESSAGES = 12;
 
-export const chatRoutes = new Hono<AuthVariables & CreditVariables>().post(
-  "/:sessionId",
-  requireCredits(1),
-  zValidator("param", chatParamSchema),
-  zValidator("json", chatRequestSchema),
-  async (c) => {
+export const chatRoutes = new Hono<AuthVariables & CreditVariables>()
+  .post(
+    "/:sessionId",
+    requireCredits(1),
+    zValidator("param", chatParamSchema),
+    zValidator("json", chatRequestSchema),
+    async (c) => {
     const { sessionId } = c.req.valid("param");
     const { messages, mode, modelId } = c.req.valid("json");
     const userId = c.get("userId");
@@ -213,8 +220,64 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>().post(
         return message;
       },
     });
-  },
-);
+    },
+  )
+  .post(
+    "/:sessionId/placeholder",
+    zValidator("param", chatParamSchema),
+    zValidator("json", placeholderRequestSchema),
+    async (c) => {
+      const { sessionId } = c.req.valid("param");
+      const { messages, modelId } = c.req.valid("json");
+      const userId = c.get("userId");
+
+      const session = await prisma.session.findFirst({
+        where: { id: sessionId, userId },
+      });
+      if (!session) {
+        return c.json({ error: "Session not found" }, 404);
+      }
+
+      const providerNeutralMessages = messages.map(removeProviderMetadata);
+      const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
+        messages: providerNeutralMessages,
+        tools: allCodingTools,
+      });
+      if (!validation.success) {
+        return c.json(
+          { error: "Invalid messages", message: validation.error.message },
+          400,
+        );
+      }
+
+      try {
+        const modelMessages = await convertToModelMessages(validation.data, {
+          tools: allCodingTools,
+        });
+        const prunedModelMessages = pruneMessages({
+          messages: modelMessages,
+          reasoning: "all",
+          toolCalls: "before-last-2-messages",
+        }).slice(-AGENT_CONTEXT_MAX_MODEL_MESSAGES);
+        const placeholder = await generateRecommendedNextPrompt({
+          messages: prunedModelMessages,
+          abortSignal: c.req.raw.signal,
+        });
+
+        return c.json({ placeholder: placeholder.trim() });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await prisma.sessionEvent.create({
+          data: {
+            sessionId: session.id,
+            kind: SessionEventKind.stream_error,
+            payload: { message, source: "placeholder" },
+          },
+        });
+        return c.json({ placeholder: "" });
+      }
+    },
+  );
 
 function getMissingProviderApiKey(provider: ReturnType<typeof getCodingModel>["provider"]) {
   switch (provider) {

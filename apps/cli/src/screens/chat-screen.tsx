@@ -60,12 +60,19 @@ export function ChatScreen() {
   const [messageDurations, setMessageDurations] = useState(
     () => new Map<string, number>(),
   );
+  const [recommendedPrompt, setRecommendedPrompt] = useState("");
   const modeRef = useRef(mode);
   const modelIdRef = useRef(modelId);
   const pendingMessageModeRef = useRef<Mode | null>(null);
   const pendingMessageModelRef = useRef<CodingModelId | null>(null);
   const pendingMessageStartedAtRef = useRef<number | null>(null);
   const lastToastedErrorRef = useRef<Error | null>(null);
+  const messagesRef = useRef<CodingAgentUIMessage[]>([]);
+  const currentPromptRef = useRef("");
+  const placeholderRequestIdRef = useRef(0);
+  const awaitingRecommendedPromptRef = useRef(false);
+  const suggestionBaselineMessageIdRef = useRef<string | null>(null);
+  const lastSuggestedAssistantMessageIdRef = useRef<string | null>(null);
 
   modeRef.current = mode;
   modelIdRef.current = modelId;
@@ -109,6 +116,44 @@ export function ChatScreen() {
     [mode],
   );
 
+  const loadRecommendedNextPrompt = useCallback(async (finishedMessages?: CodingAgentUIMessage[]) => {
+    if (!sessionId) {
+      return;
+    }
+
+    const requestId = placeholderRequestIdRef.current + 1;
+    placeholderRequestIdRef.current = requestId;
+
+    try {
+      const res = await client.chat[":sessionId"].placeholder.$post({
+        param: { sessionId },
+        json: {
+          messages: finishedMessages ?? messagesRef.current,
+          mode: modeRef.current,
+          modelId: modelIdRef.current,
+        },
+      });
+
+      if (!res.ok || placeholderRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      const data = await res.json();
+      const placeholder = data.placeholder.trim();
+      if (!placeholder) {
+        return;
+      }
+
+      if (currentPromptRef.current.trim().length > 0) {
+        return;
+      }
+
+      setRecommendedPrompt(placeholder);
+    } catch {
+      // Suggestions are optional UX; chat completion should remain quiet.
+    }
+  }, [sessionId]);
+
   const { messages, sendMessage, setMessages, status, error, addToolOutput, stop } =
     useChat<CodingAgentUIMessage>({
       id: sessionId,
@@ -118,13 +163,27 @@ export function ChatScreen() {
     });
 
   addToolOutputRef.current = addToolOutput;
+  messagesRef.current = messages;
 
-  function submitPrompt(text: string) {
+  const submitPrompt = useCallback((text: string) => {
+    placeholderRequestIdRef.current += 1;
+    setRecommendedPrompt("");
+    currentPromptRef.current = "";
+    awaitingRecommendedPromptRef.current = true;
+    suggestionBaselineMessageIdRef.current = messagesRef.current.at(-1)?.id ?? null;
     pendingMessageModeRef.current = modeRef.current;
     pendingMessageModelRef.current = modelIdRef.current;
     pendingMessageStartedAtRef.current = Date.now();
     void sendMessage({ text });
-  }
+  }, [sendMessage]);
+
+  useEffect(() => {
+    placeholderRequestIdRef.current += 1;
+    setRecommendedPrompt("");
+    awaitingRecommendedPromptRef.current = false;
+    suggestionBaselineMessageIdRef.current = null;
+    lastSuggestedAssistantMessageIdRef.current = null;
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -179,6 +238,8 @@ export function ChatScreen() {
         ),
       );
       setMessageDurations(getResponseDurations(data.messages, messages));
+      lastSuggestedAssistantMessageIdRef.current =
+        messages.findLast((message) => message.role === "assistant")?.id ?? null;
       setHydrated(true);
     }
 
@@ -255,6 +316,31 @@ export function ChatScreen() {
   useEffect(() => {
     if (
       !hydrated ||
+      status !== "ready" ||
+      !awaitingRecommendedPromptRef.current ||
+      lastAssistantMessageIsCompleteWithToolCalls({ messages })
+    ) {
+      return;
+    }
+
+    const lastMessage = messages.at(-1);
+    if (
+      !lastMessage ||
+      lastMessage.role !== "assistant" ||
+      lastMessage.id === suggestionBaselineMessageIdRef.current ||
+      lastMessage.id === lastSuggestedAssistantMessageIdRef.current
+    ) {
+      return;
+    }
+
+    lastSuggestedAssistantMessageIdRef.current = lastMessage.id;
+    awaitingRecommendedPromptRef.current = false;
+    void loadRecommendedNextPrompt(messages);
+  }, [hydrated, loadRecommendedNextPrompt, messages, status]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
       !routeState.prompt ||
       initialPromptRef.current === routeState.prompt
     ) {
@@ -298,6 +384,10 @@ export function ChatScreen() {
       ((key) => {
         if (key.name === "escape") {
           if (isBusy) {
+            placeholderRequestIdRef.current += 1;
+            setRecommendedPrompt("");
+            awaitingRecommendedPromptRef.current = false;
+            suggestionBaselineMessageIdRef.current = null;
             void stop();
             return true;
           }
@@ -410,12 +500,23 @@ export function ChatScreen() {
           width={composerWidth}
           clearOnSubmit
           disabled={isBusy || !hydrated}
-          placeholder="Send a message…"
+          placeholder={recommendedPrompt || "Send a message…"}
           mode={mode}
           modelId={modelId}
           onSubmitPrompt={(text) => {
             submitPrompt(text);
           }}
+          onPromptChange={(prompt) => {
+            currentPromptRef.current = prompt;
+          }}
+          onAcceptPlaceholder={
+            recommendedPrompt
+              ? (prompt) => {
+                  currentPromptRef.current = prompt;
+                  setRecommendedPrompt("");
+                }
+              : undefined
+          }
           onCommand={handleCommand}
         />
       </box>

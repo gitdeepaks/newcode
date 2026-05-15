@@ -20,6 +20,8 @@ const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0);
 
 type PromptTextAreaProps = {
   onSubmitPrompt?: (prompt: string) => void;
+  onPromptChange?: (prompt: string) => void;
+  onAcceptPlaceholder?: (prompt: string) => void;
   onCommand?: (command: PromptCommandInvocation) => void;
   clearOnSubmit?: boolean;
   disabled?: boolean;
@@ -31,6 +33,8 @@ type PromptTextAreaProps = {
 
 export function PromptTextArea({
   onSubmitPrompt,
+  onPromptChange,
+  onAcceptPlaceholder,
   onCommand,
   clearOnSubmit = false,
   disabled = false,
@@ -55,6 +59,17 @@ export function PromptTextArea({
       ((key) => {
         if (disabled) {
           return false;
+        }
+
+        if (
+          (key.name === "right" || key.name === "arrowright") &&
+          commandMenu.prompt.trim().length === 0 &&
+          placeholder.trim().length > 0 &&
+          onAcceptPlaceholder
+        ) {
+          replacePrompt(placeholder);
+          onAcceptPlaceholder(placeholder);
+          return true;
         }
 
         if (
@@ -84,7 +99,14 @@ export function PromptTextArea({
 
         return false;
       }) satisfies TuiLayerKeyHandler,
-      [clearPrompt, commandMenu, disabled, fileMentionMenu],
+      [
+        clearPrompt,
+        commandMenu,
+        disabled,
+        fileMentionMenu,
+        onAcceptPlaceholder,
+        placeholder,
+      ],
     ),
   });
 
@@ -136,16 +158,25 @@ export function PromptTextArea({
     if (result !== undefined) {
       const cursorPosition = getCursorPosition(result.prompt, result.cursorOffset);
 
-      textareaRef.current?.replaceText(result.prompt);
-      textareaRef.current?.setCursor(cursorPosition.row, cursorPosition.col);
-      commandMenu.updatePrompt(result.prompt);
-      fileMentionMenu.updatePrompt(result.prompt);
+      replacePrompt(result.prompt, cursorPosition);
     }
+  }
+
+  function replacePrompt(
+    prompt: string,
+    cursorPosition = getCursorPosition(prompt, prompt.length),
+  ) {
+    textareaRef.current?.replaceText(prompt);
+    textareaRef.current?.setCursor(cursorPosition.row, cursorPosition.col);
+    commandMenu.updatePrompt(prompt);
+    fileMentionMenu.updatePrompt(prompt);
+    onPromptChange?.(prompt);
   }
 
   function handlePromptChange(prompt: string) {
     commandMenu.updatePrompt(prompt);
     fileMentionMenu.updatePrompt(prompt);
+    onPromptChange?.(prompt);
   }
 
   const promptBackground = theme.elevatedSurface;
@@ -156,7 +187,6 @@ export function PromptTextArea({
     ? availableCodingModels.find((model) => model.id === modelId)
     : undefined;
   const promptHeight = modeLabel || modelConfig ? 6 : 4;
-
   return (
     <box width={width} position="relative" flexShrink={0} overflow="visible">
       {commandMenu.isOpen ? (

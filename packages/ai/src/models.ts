@@ -2,7 +2,12 @@ import { z } from "zod";
 
 export const codingModelProviders = ["anthropic", "openai"] as const;
 
-export const codingModelIds = ["claude-sonnet-4-6", "gpt-5.1"] as const;
+export const codingModelIds = [
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
+  "gpt-5.1",
+  "gpt-5-nano",
+] as const;
 
 export const codingModelProviderSchema = z.enum(codingModelProviders);
 export const codingModelIdSchema = z.enum(codingModelIds);
@@ -56,6 +61,37 @@ export const availableCodingModels = [
     },
     creditCost: {
       minimumCredits: 8,
+      usdPerCredit: 0.02,
+      targetGrossMargin: 0.7,
+    },
+  },
+  {
+    id: "claude-haiku-4-5",
+    provider: "anthropic",
+    label: "Claude Haiku 4.5",
+    description: "Fast Anthropic model for lighter coding tasks.",
+    pricing: {
+      inputUsdPerMillionTokens: 1,
+      outputUsdPerMillionTokens: 5,
+    },
+    creditCost: {
+      minimumCredits: 8,
+      usdPerCredit: 0.02,
+      targetGrossMargin: 0.7,
+    },
+  },
+  {
+    id: "gpt-5-nano",
+    provider: "openai",
+    label: "GPT-5 Nano",
+    description: "Lowest-cost OpenAI model for quick lightweight turns.",
+    pricing: {
+      inputUsdPerMillionTokens: 0.05,
+      cachedInputUsdPerMillionTokens: 0.005,
+      outputUsdPerMillionTokens: 0.4,
+    },
+    creditCost: {
+      minimumCredits: 1,
       usdPerCredit: 0.02,
       targetGrossMargin: 0.7,
     },
