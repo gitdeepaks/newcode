@@ -6,6 +6,14 @@ import { fromDbMode } from "../lib/mode-mapping";
 import type { AuthVariables } from "../middleware/auth";
 
 const sessionParamSchema = z.object({ id: z.string().min(1) });
+const messagePreviewPayloadSchema = z.object({
+  parts: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string().trim().min(1),
+    }),
+  ),
+});
 
 export const sessionRoutes = new Hono<AuthVariables>()
   .get("/", async (c) => {
@@ -18,10 +26,25 @@ export const sessionRoutes = new Hono<AuthVariables>()
         id: true,
         title: true,
         updatedAt: true,
+        messages: {
+          where: { role: "user" },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { payload: true },
+        },
       },
     });
 
-    return c.json({ sessions });
+    return c.json({
+      sessions: sessions.map((session) => ({
+        id: session.id,
+        title: getSessionTitle(
+          session.title,
+          getMessagePreview(session.messages[0]?.payload),
+        ),
+        updatedAt: session.updatedAt,
+      })),
+    });
   })
   .post("/", async (c) => {
     const userId = c.get("userId");
@@ -60,3 +83,20 @@ export const sessionRoutes = new Hono<AuthVariables>()
       });
     },
   );
+
+function getMessagePreview(payload: unknown) {
+  const result = messagePreviewPayloadSchema.safeParse(payload);
+  if (!result.success) {
+    return null;
+  }
+
+  return result.data.parts[0]?.text ?? null;
+}
+
+function getSessionTitle(title: string | null, messagePreview: string | null) {
+  if (title && title !== "Session") {
+    return title;
+  }
+
+  return messagePreview ?? title;
+}

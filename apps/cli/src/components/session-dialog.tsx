@@ -1,12 +1,22 @@
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { client } from "../lib/client";
 import { SearchListDialog } from "./search-list-dialog";
+
+const messagePreviewPayloadSchema = z.object({
+  role: z.literal("user"),
+  parts: z.array(
+    z.object({
+      type: z.literal("text"),
+      text: z.string().trim().min(1),
+    }),
+  ),
+});
 
 type SessionOption = {
   id: string;
   label: string;
-  description: string;
   metadata: string;
   group: string;
 };
@@ -37,19 +47,23 @@ export function SessionDialog({ onSessionSelect }: SessionDialogProps) {
         return;
       }
 
-      setSessionOptions(
-        data.sessions.map((session) => {
+      const options = await Promise.all(
+        data.sessions.map(async (session) => {
           const updatedAt = new Date(session.updatedAt);
 
           return {
             id: session.id,
-            label: session.title ?? "Session",
-            description: formatSessionId(session.id),
-            metadata: formatDistanceToNow(updatedAt, { addSuffix: true }),
+            label: await resolveSessionLabel(session.id, session.title),
+            metadata: formatSessionMetadata(updatedAt),
             group: formatSessionGroup(updatedAt),
           };
         }),
       );
+      if (cancelled) {
+        return;
+      }
+
+      setSessionOptions(options);
       setLoading(false);
     }
 
@@ -62,11 +76,22 @@ export function SessionDialog({ onSessionSelect }: SessionDialogProps) {
 
   return (
     <SearchListDialog
-      title="Session"
+      title="Sessions"
       options={sessionOptions}
-      maxWidth={80}
-      placeholder="Search sessions"
+      maxWidth="96%"
+      height={16}
+      rowLayout="title-metadata"
+      groupColor="#BD93F9"
+      placeholder="Search"
       emptyMessage={loading ? "Loading sessions..." : "No sessions found"}
+      footer={
+        <text>
+          <strong>delete</strong>
+          <span fg="#6E7681"> ctrl+d   </span>
+          <strong>rename</strong>
+          <span fg="#6E7681"> ctrl+r</span>
+        </text>
+      }
       onOptionSelect={(option) => onSessionSelect?.(option.id)}
     />
   );
@@ -84,10 +109,36 @@ function formatSessionGroup(date: Date) {
   return format(date, "EEE MMM d, yyyy");
 }
 
-function formatSessionId(id: string) {
-  if (id.length <= 12) {
-    return id;
+function formatSessionMetadata(date: Date) {
+  if (isToday(date)) {
+    return format(date, "h:mm a");
   }
 
-  return `${id.slice(0, 6)}...${id.slice(-4)}`;
+  return formatDistanceToNow(date, { addSuffix: true });
+}
+
+async function resolveSessionLabel(id: string, title: string | null) {
+  if (title && title !== "Session") {
+    return title;
+  }
+
+  const preview = await getSessionMessagePreview(id);
+  return preview ?? title ?? "Session";
+}
+
+async function getSessionMessagePreview(id: string) {
+  const res = await client.sessions[":id"].messages.$get({ param: { id } });
+  if (!res.ok) {
+    return null;
+  }
+
+  const data = await res.json();
+  for (const message of data.messages) {
+    const result = messagePreviewPayloadSchema.safeParse(message.payload);
+    if (result.success) {
+      return result.data.parts[0]?.text ?? null;
+    }
+  }
+
+  return null;
 }

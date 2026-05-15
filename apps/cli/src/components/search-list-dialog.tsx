@@ -1,6 +1,7 @@
 import type { InputRenderable, ScrollBoxRenderable } from "@opentui/core";
 import {
   Fragment,
+  type ReactNode,
   useCallback,
   useLayoutEffect,
   useRef,
@@ -23,6 +24,9 @@ type SearchListDialogProps<TId extends string = string> = {
   options: readonly SearchListDialogOption<TId>[];
   maxWidth?: number | `${number}%` | "auto";
   height?: number;
+  rowLayout?: "columns" | "title-metadata";
+  groupColor?: string;
+  footer?: ReactNode;
   initialActiveIndex?: number;
   placeholder?: string;
   emptyMessage?: string;
@@ -35,6 +39,9 @@ export function SearchListDialog<TId extends string = string>({
   options,
   maxWidth,
   height = 14,
+  rowLayout = "columns",
+  groupColor,
+  footer,
   initialActiveIndex = 0,
   placeholder = "Search",
   emptyMessage = "No options found",
@@ -172,7 +179,7 @@ export function SearchListDialog<TId extends string = string>({
                     <box paddingX={1} paddingTop={index === 0 ? 0 : 1}>
                       <text>
                         <strong>
-                          <span fg={theme.accent}>{option.group}</span>
+                          <span fg={groupColor ?? theme.accent}>{option.group}</span>
                         </strong>
                       </text>
                     </box>
@@ -191,29 +198,49 @@ export function SearchListDialog<TId extends string = string>({
                     }}
                     onMouseDown={() => onOptionSelect?.(option)}
                   >
-                    <box width={16}>
-                      <text>
-                        <span fg={textColor}>{option.label}</span>
-                      </text>
-                    </box>
-                    <box width={24}>
-                      <text>
-                        {option.description ? (
-                          <span fg={descriptionColor}>{option.description}</span>
-                        ) : null}
-                      </text>
-                    </box>
-                    <text>
-                      {option.metadata ? (
-                        <span fg={descriptionColor}>{option.metadata}</span>
-                      ) : null}
-                    </text>
+                    {rowLayout === "title-metadata" ? (
+                      <>
+                        <box flexGrow={1}>
+                          <text>
+                            <span fg={textColor}>{option.label}</span>
+                          </text>
+                        </box>
+                        <box width={12} justifyContent="flex-end">
+                          <text>
+                            {option.metadata ? (
+                              <span fg={descriptionColor}>{option.metadata}</span>
+                            ) : null}
+                          </text>
+                        </box>
+                      </>
+                    ) : (
+                      <>
+                        <box width={16}>
+                          <text>
+                            <span fg={textColor}>{option.label}</span>
+                          </text>
+                        </box>
+                        <box width={24}>
+                          <text>
+                            {option.description ? (
+                              <span fg={descriptionColor}>{option.description}</span>
+                            ) : null}
+                          </text>
+                        </box>
+                        <text>
+                          {option.metadata ? (
+                            <span fg={descriptionColor}>{option.metadata}</span>
+                          ) : null}
+                        </text>
+                      </>
+                    )}
                   </box>
                 </Fragment>
               );
             })
           )}
         </scrollbox>
+        {footer ? <box paddingX={1}>{footer}</box> : null}
       </box>
     </Dialog>
   );
