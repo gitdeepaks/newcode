@@ -330,7 +330,7 @@ export function ChatScreen() {
         paddingX={2}
         paddingY={COMPOSER_VERTICAL_PADDING}
         backgroundColor={theme.bg}
-        overflow="hidden"
+        overflow="visible"
         flexShrink={0}
       >
         <PromptTextArea
