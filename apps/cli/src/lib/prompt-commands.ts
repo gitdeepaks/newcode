@@ -23,62 +23,6 @@ const promptCommands = definePromptCommands([
     description: "Open sessions",
   },
   {
-    name: "/fix",
-    description: "Fix current code",
-  },
-  {
-    name: "/explain",
-    description: "Explain current code",
-  },
-  {
-    name: "/review",
-    description: "Review current changes",
-  },
-  {
-    name: "/summarize",
-    description: "Summarize conversation",
-  },
-  {
-    name: "/test",
-    description: "Run relevant tests",
-  },
-  {
-    name: "/docs",
-    description: "Update documentation",
-  },
-  {
-    name: "/refactor",
-    description: "Refactor selected code",
-  },
-  {
-    name: "/optimize",
-    description: "Improve performance",
-  },
-  {
-    name: "/security",
-    description: "Check security issues",
-  },
-  {
-    name: "/types",
-    description: "Improve type safety",
-  },
-  {
-    name: "/commit",
-    description: "Create git commit",
-  },
-  {
-    name: "/branch",
-    description: "Create or switch branch",
-  },
-  {
-    name: "/diff",
-    description: "Show current diff",
-  },
-  {
-    name: "/status",
-    description: "Show workspace status",
-  },
-  {
     name: "/model",
     description: "Change active model",
   },
@@ -117,38 +61,6 @@ const promptCommands = definePromptCommands([
   {
     name: "/error",
     description: "Show error toast",
-  },
-  {
-    name: "/settings",
-    description: "Open settings",
-  },
-  {
-    name: "/help",
-    description: "Show available commands",
-  },
-  {
-    name: "/clear",
-    description: "Clear conversation",
-  },
-  {
-    name: "/history",
-    description: "Show prompt history",
-  },
-  {
-    name: "/search",
-    description: "Search the codebase",
-  },
-  {
-    name: "/plan",
-    description: "Create an implementation plan",
-  },
-  {
-    name: "/apply",
-    description: "Apply pending changes",
-  },
-  {
-    name: "/undo",
-    description: "Undo last operation",
   },
 ]);
 
