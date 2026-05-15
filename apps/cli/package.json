@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bun --env-file=../../.env --watch run src/index.tsx",
     "start": "bun --env-file=../../.env run src/index.tsx",
-    "build": "bun build src/index.tsx --outdir dist --target bun --external '@opentui/*' --external react --external react-reconciler",
+    "build": "bun --env-file=../../.env run scripts/build.ts",
     "check": "bunx tsc --noEmit"
   },
   "devDependencies": {

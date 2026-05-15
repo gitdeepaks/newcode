@@ -8,5 +8,5 @@
     "jsxImportSource": "@opentui/react",
     "types": ["bun"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "scripts/**/*"]
 }
