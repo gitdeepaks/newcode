@@ -13,6 +13,7 @@ import { getCodingModel, type CodingModelId, type Mode } from "newcode-ai";
 import { getMarkdownSyntaxStyle } from "../../lib/markdown-style";
 import { getModeColor } from "../../lib/mode-style";
 import { useTheme } from "../../lib/theme";
+import { formatToolSummary } from "../../lib/tool-summary";
 
 type AnyUIMessagePart = UIMessage["parts"][number];
 
@@ -221,40 +222,66 @@ function ToolPart({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
   switch (part.state) {
     case "input-available":
       return (
-        <ToolLine color={theme.textMuted} name={name} state="running" />
+        <ToolLine
+          color={theme.textMuted}
+          summary={formatToolSummary({
+            name,
+            state: part.state,
+            input: part.input,
+          })}
+        />
       );
     case "output-available":
       return (
-        <ToolLine color={theme.textMuted} name={name} state="done" />
+        <ToolLine
+          color={theme.textMuted}
+          summary={formatToolSummary({
+            name,
+            state: part.state,
+            input: part.input,
+            output: part.output,
+          })}
+        />
       );
     case "output-error":
       return (
-        <box border={["left"]} borderColor={theme.textMuted} paddingLeft={1}>
-          <text fg={theme.danger} selectable>
-            [tool: {name}] failed: {part.errorText}
-          </text>
-        </box>
+        <ToolLine
+          color={theme.danger}
+          summary={formatToolSummary({
+            name,
+            state: part.state,
+            input: part.input,
+            errorText: part.errorText,
+          })}
+        />
       );
     default:
-      return <ToolLine color={theme.textMuted} name={name} state="running" />;
+      return (
+        <ToolLine
+          color={theme.textMuted}
+          summary={formatToolSummary({
+            name,
+            state: "input-available",
+            input: part.input,
+          })}
+        />
+      );
   }
 }
 
 function ToolLine({
   color,
-  name,
-  state,
+  summary,
 }: {
   color: string;
-  name: string;
-  state: "running" | "done";
+  summary: string;
 }) {
   const theme = useTheme();
 
   return (
     <box border={["left"]} borderColor={theme.textMuted} paddingLeft={1}>
-      <text fg={color}>
-        [tool: {name}] {state}
+      <text fg={color} selectable>
+        {summary}
       </text>
     </box>
   );
