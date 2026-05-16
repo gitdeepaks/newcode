@@ -9,6 +9,11 @@ if (!serverUrl) {
   process.exit(1);
 }
 
+if (serverUrl === "https://example.com" || serverUrl === "http://example.com") {
+  console.error("SERVER_URL must be your deployed API URL, not example.com");
+  process.exit(1);
+}
+
 const root = process.cwd();
 const cliDir = join(root, "apps", "cli");
 const releaseDir = join(root, "release");
