@@ -193,7 +193,9 @@ bun unlink @newcode/cli
 
 ## Public CLI Install
 
-The simplest public distribution path is a GitHub Release tarball plus the repository install script. The installed CLI requires Bun on the user's machine.
+The public CLI is distributed through GitHub Releases. The installer downloads the correct release tarball for your machine, installs it into `~/.newcode`, and links the `newcode` command into `~/.local/bin`.
+
+The installed CLI requires Bun on your machine.
 
 Install Bun first if needed:
 
@@ -201,16 +203,28 @@ Install Bun first if needed:
 curl -fsSL https://bun.sh/install | bash
 ```
 
-Install the latest `newcode` CLI release:
+Install the latest `newcode` release:
 
 ```bash
 curl -fsSL https://github.com/gitdeepaks/newcode/releases/latest/download/install.sh | sh
 ```
 
-Then run:
+If `~/.local/bin` is already in your `PATH`, run:
 
 ```bash
 newcode
+```
+
+If your shell cannot find `newcode`, add `~/.local/bin` to your `PATH` and restart your terminal:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+For zsh users, persist it with:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 ```
 
 To install a specific release tag:
@@ -219,7 +233,15 @@ To install a specific release tag:
 NEWCODE_VERSION=v0.1.0 curl -fsSL https://github.com/gitdeepaks/newcode/releases/download/v0.1.0/install.sh | sh
 ```
 
-The installer downloads `newcode-<platform>-<arch>.tar.gz` from GitHub Releases, extracts it to `~/.newcode`, and links `newcode` into `~/.local/bin`.
+To reinstall or upgrade later, run the latest install command again.
+
+Supported release assets currently follow this naming pattern:
+
+```text
+newcode-darwin-arm64.tar.gz
+newcode-darwin-x64.tar.gz
+newcode-linux-x64.tar.gz
+```
 
 ## Publishing A CLI Release
 
