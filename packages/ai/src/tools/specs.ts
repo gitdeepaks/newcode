@@ -193,6 +193,48 @@ export const grepOutput = z.object({
 export type GrepInput = z.infer<typeof grepInput>;
 export type GrepOutput = z.infer<typeof grepOutput>;
 
+// git_status -----------------------------------------------------------------
+
+export const gitStatusInput = z.object({}).default({});
+
+export const gitStatusOutput = z.object({
+  branch: z.string(),
+  clean: z.boolean(),
+  changed: z.array(z.string()),
+  staged: z.array(z.string()),
+  unstaged: z.array(z.string()),
+  untracked: z.array(z.string()),
+});
+
+export type GitStatusInput = z.infer<typeof gitStatusInput>;
+export type GitStatusOutput = z.infer<typeof gitStatusOutput>;
+
+// git_diff -------------------------------------------------------------------
+
+export const gitDiffInput = z.object({
+  path: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional file or directory path to scope the diff. Relative to workspace root or absolute. Must resolve inside the workspace.",
+    ),
+  staged: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, inspect staged changes. Defaults to false for unstaged/working tree changes.",
+    ),
+}).default({});
+
+export const gitDiffOutput = z.object({
+  diff: z.string(),
+  truncated: z.boolean(),
+});
+
+export type GitDiffInput = z.infer<typeof gitDiffInput>;
+export type GitDiffOutput = z.infer<typeof gitDiffOutput>;
+
 // bash -----------------------------------------------------------------------
 
 export const bashInput = z.object({
@@ -266,6 +308,18 @@ export const toolSpecs = {
       "Search for a regex pattern across files inside the workspace. Returns matching file paths, line numbers, and matched lines (capped).",
     inputSchema: grepInput,
     outputSchema: grepOutput,
+  },
+  git_status: {
+    description:
+      "Inspect the git worktree status from the workspace root. Read-only. Returns branch, clean/dirty state, and changed/staged/unstaged/untracked workspace-relative paths.",
+    inputSchema: gitStatusInput,
+    outputSchema: gitStatusOutput,
+  },
+  git_diff: {
+    description:
+      "Inspect git diff text from the workspace root. Read-only. Defaults to unstaged working tree changes; pass staged: true for staged changes. Output is capped for token safety.",
+    inputSchema: gitDiffInput,
+    outputSchema: gitDiffOutput,
   },
   bash: {
     description:

@@ -5,6 +5,9 @@ import {
   deleteFileOutput,
   editFileInput,
   editFileOutput,
+  gitDiffInput,
+  gitDiffOutput,
+  gitStatusOutput,
   globInput,
   globOutput,
   grepInput,
@@ -87,6 +90,17 @@ function formatToolAction(name: string, input: unknown) {
       const scope = parsed.data.path ? ` in ${parsed.data.path}` : "";
       return `finding ${parsed.data.pattern}${scope}`;
     }
+    case "git_status": {
+      return "checking git status";
+    }
+    case "git_diff": {
+      const parsed = gitDiffInput.safeParse(input);
+      if (!parsed.success) return "checking git diff";
+      const scope = parsed.data.path ? ` for ${parsed.data.path}` : "";
+      return parsed.data.staged
+        ? `checking staged git diff${scope}`
+        : `checking git diff${scope}`;
+    }
     case "bash": {
       const parsed = bashInput.safeParse(input);
       return parsed.success
@@ -143,6 +157,17 @@ function formatToolResult(name: string, input: unknown, output: unknown) {
       const parsedOutput = globOutput.safeParse(output);
       if (!parsedOutput.success) return `${formatToolAction(name, input)} done`;
       return `${parsedOutput.data.paths.length} paths${formatTruncated(parsedOutput.data.truncated)}`;
+    }
+    case "git_status": {
+      const parsedOutput = gitStatusOutput.safeParse(output);
+      if (!parsedOutput.success) return `${formatToolAction(name, input)} done`;
+      const state = parsedOutput.data.clean ? "clean" : "dirty";
+      return `${parsedOutput.data.branch || "detached"}: ${state}, ${parsedOutput.data.changed.length} changed`;
+    }
+    case "git_diff": {
+      const parsedOutput = gitDiffOutput.safeParse(output);
+      if (!parsedOutput.success) return `${formatToolAction(name, input)} done`;
+      return `${parsedOutput.data.diff.length} chars${formatTruncated(parsedOutput.data.truncated)}`;
     }
     case "bash": {
       const parsedInput = bashInput.safeParse(input);

@@ -6,6 +6,7 @@ const baseInstructions = [
   "All file system tools execute on the CLI; you do not have direct file system access yourself.",
   "Prefer edit_file (string replace) for small changes; use write_file for new files or full rewrites; use delete_file when the task is to remove a file.",
   "Use glob for file discovery, grep for content search, and list_directory only when you need a directory's immediate contents. Read a file before editing it so your oldString matches verbatim.",
+  "Use git_status to check whether the worktree is dirty and git_diff to inspect relevant user changes before editing files that may already be modified.",
   "For high-level repository questions, start with glob or a focused list_directory call and a few targeted read_file slices. Do not read large docs or source files in one step unless the user asks for that detail.",
   "Use bash for build, test, and shell tasks when the active mode allows it. Keep commands focused and short-lived.",
   "All paths must stay inside the user's workspace; absolute paths outside it will be rejected.",

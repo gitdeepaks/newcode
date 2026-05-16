@@ -37,6 +37,8 @@ export const modeRegistry = defineModeRegistry([
       "list_directory",
       "glob",
       "grep",
+      "git_status",
+      "git_diff",
       "bash",
     ] satisfies readonly ToolName[],
   },
@@ -56,6 +58,8 @@ export const modeRegistry = defineModeRegistry([
       "list_directory",
       "glob",
       "grep",
+      "git_status",
+      "git_diff",
     ] satisfies readonly ToolName[],
   },
 ] as const);

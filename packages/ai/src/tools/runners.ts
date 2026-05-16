@@ -16,6 +16,10 @@ import type {
   DeleteFileOutput,
   EditFileInput,
   EditFileOutput,
+  GitDiffInput,
+  GitDiffOutput,
+  GitStatusInput,
+  GitStatusOutput,
   GlobInput,
   GlobOutput,
   GrepInput,
@@ -359,6 +363,137 @@ function parseRgLine(line: string): GrepOutput["matches"][number] | null {
   if (!Number.isInteger(lineNumber) || lineNumber < 1) return null;
   const text = line.slice(secondColon + 1);
   return { path, line: lineNumber, text };
+}
+
+// git_status -----------------------------------------------------------------
+
+export async function gitStatus(
+  workspaceRoot: string,
+  _input: GitStatusInput,
+): Promise<GitStatusOutput> {
+  const status = await runGit(workspaceRoot, ["status", "--porcelain=v1", "-b"]);
+  const lines = status.stdout.split("\n").filter(Boolean);
+  const branch = parseGitStatusBranch(lines[0]) || await getGitBranch(workspaceRoot);
+  const staged = new Set<string>();
+  const unstaged = new Set<string>();
+  const untracked = new Set<string>();
+
+  for (const line of lines.slice(1)) {
+    const parsed = parseGitPorcelainLine(line);
+    if (!parsed) continue;
+
+    if (parsed.indexStatus === "?" && parsed.worktreeStatus === "?") {
+      untracked.add(parsed.path);
+      continue;
+    }
+
+    if (parsed.indexStatus !== " ") staged.add(parsed.path);
+    if (parsed.worktreeStatus !== " ") unstaged.add(parsed.path);
+  }
+
+  const changed = sortUnique([...staged, ...unstaged, ...untracked]);
+
+  return {
+    branch,
+    clean: changed.length === 0,
+    changed,
+    staged: [...staged].sort(),
+    unstaged: [...unstaged].sort(),
+    untracked: [...untracked].sort(),
+  };
+}
+
+async function getGitBranch(workspaceRoot: string): Promise<string> {
+  const result = await runGit(workspaceRoot, ["branch", "--show-current"]);
+  return result.stdout.trim();
+}
+
+function parseGitStatusBranch(line: string | undefined): string {
+  if (!line?.startsWith("## ")) return "";
+  const branchText = line.slice(3);
+  const upstreamIndex = branchText.indexOf("...");
+  if (upstreamIndex !== -1) return branchText.slice(0, upstreamIndex);
+  const detachedPrefix = "HEAD (no branch)";
+  if (branchText.startsWith(detachedPrefix)) return "HEAD";
+  return branchText;
+}
+
+function parseGitPorcelainLine(
+  line: string,
+): { indexStatus: string; worktreeStatus: string; path: string } | null {
+  if (line.length < 4) return null;
+  const rawPath = line.slice(3);
+  const renamedPath = rawPath.includes(" -> ")
+    ? rawPath.slice(rawPath.lastIndexOf(" -> ") + 4)
+    : rawPath;
+
+  return {
+    indexStatus: line[0],
+    worktreeStatus: line[1],
+    path: stripPorcelainQuotes(renamedPath),
+  };
+}
+
+function stripPorcelainQuotes(filePath: string): string {
+  if (!filePath.startsWith('"') || !filePath.endsWith('"')) return filePath;
+  try {
+    return JSON.parse(filePath) as string;
+  } catch {
+    return filePath.slice(1, -1);
+  }
+}
+
+function sortUnique(values: string[]): string[] {
+  return [...new Set(values)].sort();
+}
+
+// git_diff -------------------------------------------------------------------
+
+const GIT_DIFF_MAX_BYTES = 64 * 1024;
+
+export async function gitDiff(
+  workspaceRoot: string,
+  input: GitDiffInput,
+): Promise<GitDiffOutput> {
+  const args = ["diff"];
+  if (input.staged) args.push("--staged");
+  if (input.path) {
+    args.push("--", resolveWithinWorkspace(workspaceRoot, input.path));
+  }
+
+  const result = await runGit(workspaceRoot, args);
+  return capGitDiffBytes(result.stdout);
+}
+
+function capGitDiffBytes(diff: string): GitDiffOutput {
+  if (Buffer.byteLength(diff, "utf8") <= GIT_DIFF_MAX_BYTES) {
+    return { diff, truncated: false };
+  }
+  const buf = Buffer.from(diff, "utf8").subarray(0, GIT_DIFF_MAX_BYTES);
+  return { diff: buf.toString("utf8"), truncated: true };
+}
+
+async function runGit(
+  workspaceRoot: string,
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn(["git", ...args], {
+    cwd: workspaceRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr.trim() || `git exited with code ${exitCode}`);
+  }
+
+  return { stdout, stderr, exitCode };
 }
 
 // bash -----------------------------------------------------------------------
