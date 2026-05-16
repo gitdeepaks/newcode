@@ -133,6 +133,29 @@ export const listDirectoryOutput = z.object({
 export type ListDirectoryInput = z.infer<typeof listDirectoryInput>;
 export type ListDirectoryOutput = z.infer<typeof listDirectoryOutput>;
 
+// glob -----------------------------------------------------------------------
+
+export const globInput = z.object({
+  pattern: z
+    .string()
+    .min(1)
+    .describe('Glob pattern to match file paths, e.g. "**/*.tsx", "apps/server/**/*.ts", or "package.json".'),
+  path: z
+    .string()
+    .optional()
+    .describe(
+      "Directory to search in. Relative to workspace root or absolute. Defaults to the workspace root.",
+    ),
+});
+
+export const globOutput = z.object({
+  paths: z.array(z.string()),
+  truncated: z.boolean(),
+});
+
+export type GlobInput = z.infer<typeof globInput>;
+export type GlobOutput = z.infer<typeof globOutput>;
+
 // grep -----------------------------------------------------------------------
 
 export const grepInput = z.object({
@@ -231,6 +254,12 @@ export const toolSpecs = {
       "List the contents of a directory inside the workspace. Use `recursive: true` for a tree walk (capped at 1000 entries).",
     inputSchema: listDirectoryInput,
     outputSchema: listDirectoryOutput,
+  },
+  glob: {
+    description:
+      'Find files inside the workspace by glob pattern using ripgrep file discovery when available, with a Bun glob fallback. Prefer this for file discovery over repeated list_directory calls. Returns workspace-relative paths when possible (capped). Examples: "**/*.tsx", "apps/server/**/*.ts", "package.json".',
+    inputSchema: globInput,
+    outputSchema: globOutput,
   },
   grep: {
     description:

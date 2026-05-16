@@ -35,6 +35,7 @@ export const modeRegistry = defineModeRegistry([
       "delete_file",
       "edit_file",
       "list_directory",
+      "glob",
       "grep",
       "bash",
     ] satisfies readonly ToolName[],
@@ -53,6 +54,7 @@ export const modeRegistry = defineModeRegistry([
     allowedTools: [
       "read_file",
       "list_directory",
+      "glob",
       "grep",
     ] satisfies readonly ToolName[],
   },

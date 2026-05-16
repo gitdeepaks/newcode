@@ -16,6 +16,8 @@ import type {
   DeleteFileOutput,
   EditFileInput,
   EditFileOutput,
+  GlobInput,
+  GlobOutput,
   GrepInput,
   GrepOutput,
   ListDirectoryInput,
@@ -193,6 +195,103 @@ async function toListEntry(
   } catch {
     return { name: display, type: "other" };
   }
+}
+
+// glob -----------------------------------------------------------------------
+
+const GLOB_MAX_PATHS = 500;
+
+export async function glob(
+  workspaceRoot: string,
+  input: GlobInput,
+): Promise<GlobOutput> {
+  const target = input.path
+    ? resolveWithinWorkspace(workspaceRoot, input.path)
+    : workspaceRoot;
+
+  try {
+    return await globWithRipgrep(workspaceRoot, target, input.pattern);
+  } catch (err) {
+    if (!isExecutableNotFoundError(err)) {
+      throw err;
+    }
+    return globWithBun(workspaceRoot, target, input.pattern);
+  }
+}
+
+async function globWithRipgrep(
+  workspaceRoot: string,
+  target: string,
+  pattern: string,
+): Promise<GlobOutput> {
+  const args = ["--files", "--glob", pattern, "--", target];
+  const proc = Bun.spawn(["rg", ...args], {
+    cwd: workspaceRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  if (exitCode !== 0 && exitCode !== 1) {
+    throw new Error(stderr.trim() || `ripgrep exited with code ${exitCode}`);
+  }
+
+  const paths: string[] = [];
+  let truncated = false;
+  for (const raw of stdout.split("\n")) {
+    if (!raw) continue;
+    if (paths.length >= GLOB_MAX_PATHS) {
+      truncated = true;
+      break;
+    }
+
+    const resolved = resolveWithinWorkspace(workspaceRoot, raw);
+    paths.push(toWorkspaceRelativePath(workspaceRoot, resolved));
+  }
+
+  return { paths: paths.sort(), truncated };
+}
+
+async function globWithBun(
+  workspaceRoot: string,
+  target: string,
+  pattern: string,
+): Promise<GlobOutput> {
+  const scanner = new Bun.Glob(pattern).scan({
+    cwd: target,
+    onlyFiles: true,
+    absolute: true,
+  });
+  const paths: string[] = [];
+  let truncated = false;
+
+  for await (const raw of scanner) {
+    if (paths.length >= GLOB_MAX_PATHS) {
+      truncated = true;
+      break;
+    }
+
+    const resolved = resolveWithinWorkspace(workspaceRoot, raw);
+    paths.push(toWorkspaceRelativePath(workspaceRoot, resolved));
+  }
+
+  return { paths: paths.sort(), truncated };
+}
+
+function isExecutableNotFoundError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const code = "code" in err ? err.code : undefined;
+  return code === "ENOENT" || err.message.includes("Executable not found");
+}
+
+function toWorkspaceRelativePath(workspaceRoot: string, fullPath: string): string {
+  const relative = path.relative(workspaceRoot, fullPath);
+  return relative || ".";
 }
 
 // grep -----------------------------------------------------------------------

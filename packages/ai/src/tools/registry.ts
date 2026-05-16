@@ -1,7 +1,7 @@
 import type { AiToolMap, ToolHandlerMap } from "./definition";
 import { getModeConfig, type Mode } from "../modes";
 import { defineAiTool, defineToolHandler } from "./definition";
-import { bash, deleteFile, editFile, grep, listDirectory, readFile, writeFile } from "./runners";
+import { bash, deleteFile, editFile, glob, grep, listDirectory, readFile, writeFile } from "./runners";
 import { toolSpecs } from "./specs";
 
 export const allCodingTools = {
@@ -10,6 +10,7 @@ export const allCodingTools = {
   delete_file: defineAiTool(toolSpecs.delete_file),
   edit_file: defineAiTool(toolSpecs.edit_file),
   list_directory: defineAiTool(toolSpecs.list_directory),
+  glob: defineAiTool(toolSpecs.glob),
   grep: defineAiTool(toolSpecs.grep),
   bash: defineAiTool(toolSpecs.bash),
 } satisfies AiToolMap<typeof toolSpecs>;
@@ -20,6 +21,7 @@ export const allCodingToolHandlers = {
   delete_file: defineToolHandler(toolSpecs.delete_file, deleteFile),
   edit_file: defineToolHandler(toolSpecs.edit_file, editFile),
   list_directory: defineToolHandler(toolSpecs.list_directory, listDirectory),
+  glob: defineToolHandler(toolSpecs.glob, glob),
   grep: defineToolHandler(toolSpecs.grep, grep),
   bash: defineToolHandler(toolSpecs.bash, bash),
 } satisfies ToolHandlerMap<typeof toolSpecs>;

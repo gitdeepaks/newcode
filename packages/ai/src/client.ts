@@ -11,7 +11,7 @@ import { allCodingTools, getCodingToolHandlersForMode } from "./tools/registry";
 import { isToolName, toolSpecs, type ToolName } from "./tools/specs";
 
 export { resolveWithinWorkspace } from "./workspace";
-export { bash, deleteFile, editFile, grep, listDirectory, readFile, writeFile } from "./tools/runners";
+export { bash, deleteFile, editFile, glob, grep, listDirectory, readFile, writeFile } from "./tools/runners";
 
 export type RunTool = {
   <T extends ToolName>(

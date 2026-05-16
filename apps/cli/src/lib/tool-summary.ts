@@ -5,6 +5,8 @@ import {
   deleteFileOutput,
   editFileInput,
   editFileOutput,
+  globInput,
+  globOutput,
   grepInput,
   grepOutput,
   listDirectoryInput,
@@ -79,6 +81,12 @@ function formatToolAction(name: string, input: unknown) {
       const glob = parsed.data.glob ? ` (${parsed.data.glob})` : "";
       return `searching for "${parsed.data.pattern}"${scope}${glob}`;
     }
+    case "glob": {
+      const parsed = globInput.safeParse(input);
+      if (!parsed.success) return "finding files";
+      const scope = parsed.data.path ? ` in ${parsed.data.path}` : "";
+      return `finding ${parsed.data.pattern}${scope}`;
+    }
     case "bash": {
       const parsed = bashInput.safeParse(input);
       return parsed.success
@@ -130,6 +138,11 @@ function formatToolResult(name: string, input: unknown, output: unknown) {
       const parsedOutput = grepOutput.safeParse(output);
       if (!parsedOutput.success) return `${formatToolAction(name, input)} done`;
       return `${parsedOutput.data.matches.length} matches${formatTruncated(parsedOutput.data.truncated)}`;
+    }
+    case "glob": {
+      const parsedOutput = globOutput.safeParse(output);
+      if (!parsedOutput.success) return `${formatToolAction(name, input)} done`;
+      return `${parsedOutput.data.paths.length} paths${formatTruncated(parsedOutput.data.truncated)}`;
     }
     case "bash": {
       const parsedInput = bashInput.safeParse(input);
