@@ -204,7 +204,7 @@ curl -fsSL https://bun.sh/install | bash
 Install the latest `newcode` CLI release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/master/scripts/install.sh | sh
+curl -fsSL https://github.com/gitdeepaks/newcode/releases/latest/download/install.sh | sh
 ```
 
 Then run:
@@ -216,14 +216,36 @@ newcode
 To install a specific release tag:
 
 ```bash
-NEWCODE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/gitdeepaks/newcode/master/scripts/install.sh | sh
+NEWCODE_VERSION=v0.1.0 curl -fsSL https://github.com/gitdeepaks/newcode/releases/download/v0.1.0/install.sh | sh
 ```
 
 The installer downloads `newcode-<platform>-<arch>.tar.gz` from GitHub Releases, extracts it to `~/.newcode`, and links `newcode` into `~/.local/bin`.
 
 ## Publishing A CLI Release
 
-Build the CLI release tarball from the repository root:
+The simplest release path is the manual GitHub Actions workflow in `.github/workflows/release-cli.yml`.
+
+To publish a release:
+
+1. Push your changes to GitHub.
+2. Open the repository on GitHub.
+3. Go to **Actions**.
+4. Choose **Release CLI**.
+5. Click **Run workflow**.
+6. Enter a tag like `v0.1.0`.
+7. Enter the deployed API URL to embed in the CLI, for example `https://api.example.com`.
+8. Run the workflow.
+
+The workflow builds and publishes these release assets:
+
+```text
+install.sh
+newcode-darwin-arm64.tar.gz
+newcode-darwin-x64.tar.gz
+newcode-linux-x64.tar.gz
+```
+
+If you want to build a single release tarball locally instead, run this from the repository root:
 
 ```bash
 SERVER_URL=<deployed-api-url> bun run package:cli-release
@@ -235,7 +257,7 @@ This writes a platform-specific artifact to `release/`, for example:
 release/newcode-darwin-arm64.tar.gz
 ```
 
-Upload that artifact to a GitHub Release for this repository.
+Upload that artifact and `scripts/install.sh` to a GitHub Release for this repository.
 
 The CLI API endpoint is embedded at build time through `SERVER_URL`. The release flow does not require `www.newcodetui.in`; use whichever deployed API URL is active for that release.
 
