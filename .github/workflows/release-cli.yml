@@ -11,6 +11,19 @@ on:
         description: Deployed server URL to embed in the CLI
         required: true
         type: string
+      clerk_frontend_api:
+        description: Clerk Frontend API URL to embed in the CLI
+        required: true
+        type: string
+      clerk_oauth_client_id:
+        description: Clerk OAuth client id to embed in the CLI
+        required: true
+        type: string
+      clerk_oauth_redirect_uri:
+        description: Clerk OAuth redirect URI
+        required: false
+        default: http://127.0.0.1:8976/oauth/callback
+        type: string
 
 permissions:
   contents: write
@@ -49,6 +62,9 @@ jobs:
         run: bun run package:cli-release
         env:
           SERVER_URL: ${{ inputs.server_url }}
+          CLERK_FRONTEND_API: ${{ inputs.clerk_frontend_api }}
+          CLERK_OAUTH_CLIENT_ID: ${{ inputs.clerk_oauth_client_id }}
+          CLERK_OAUTH_REDIRECT_URI: ${{ inputs.clerk_oauth_redirect_uri }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

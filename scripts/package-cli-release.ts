@@ -3,6 +3,8 @@ import { cp, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const serverUrl = process.env.SERVER_URL;
+const clerkFrontendApi = process.env.CLERK_FRONTEND_API;
+const clerkOAuthClientId = process.env.CLERK_OAUTH_CLIENT_ID;
 
 if (!serverUrl) {
   console.error("SERVER_URL is required, e.g. SERVER_URL=https://www.newcodetui.in bun run package:cli-release");
@@ -11,6 +13,16 @@ if (!serverUrl) {
 
 if (serverUrl === "https://example.com" || serverUrl === "http://example.com") {
   console.error("SERVER_URL must be your deployed API URL, not example.com");
+  process.exit(1);
+}
+
+if (!clerkFrontendApi) {
+  console.error("CLERK_FRONTEND_API is required for CLI login releases");
+  process.exit(1);
+}
+
+if (!clerkOAuthClientId) {
+  console.error("CLERK_OAUTH_CLIENT_ID is required for CLI login releases");
   process.exit(1);
 }
 

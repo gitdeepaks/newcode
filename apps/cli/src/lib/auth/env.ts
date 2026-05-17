@@ -9,5 +9,13 @@ const authEnvSchema = z.object({
 export type AuthEnv = z.infer<typeof authEnvSchema>;
 
 export function getAuthEnv() {
-  return authEnvSchema.parse(process.env);
+  return authEnvSchema.parse({
+    ...process.env,
+    CLERK_FRONTEND_API:
+      BUILD_CLERK_FRONTEND_API ?? process.env.CLERK_FRONTEND_API,
+    CLERK_OAUTH_CLIENT_ID:
+      BUILD_CLERK_OAUTH_CLIENT_ID ?? process.env.CLERK_OAUTH_CLIENT_ID,
+    CLERK_OAUTH_REDIRECT_URI:
+      BUILD_CLERK_OAUTH_REDIRECT_URI ?? process.env.CLERK_OAUTH_REDIRECT_URI,
+  });
 }
