@@ -129,7 +129,7 @@ export function usePromptCommand() {
   return (command: PromptCommandInvocation) => {
     switch (command.name) {
       case "/exit":
-        renderer.destroy();
+        setTimeout(() => renderer.destroy(), 0);
         return;
       case "/new":
         navigate("/", { replace: true });

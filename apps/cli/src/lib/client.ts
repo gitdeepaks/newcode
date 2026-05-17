@@ -4,7 +4,7 @@ import { authConfigService } from "./auth/auth-config";
 import { getValidAuthSession } from "./auth/oauth";
 
 const BASE_URL =
-  process.env.SERVER_URL ?? BUILD_SERVER_URL ?? "http://localhost:3000";
+  BUILD_SERVER_URL ?? process.env.SERVER_URL ?? "http://localhost:3000";
 
 export const client = hc<AppType>(BASE_URL, {
   headers: getAuthHeaders,
