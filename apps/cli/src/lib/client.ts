@@ -2,9 +2,13 @@ import { hc } from "hono/client";
 import type { AppType } from "@newcode/server/app";
 import { authConfigService } from "./auth/auth-config";
 import { getValidAuthSession } from "./auth/oauth";
+import { z } from "zod";
+import { buildServerUrl } from "./build-env";
 
-const BASE_URL =
-  BUILD_SERVER_URL ?? process.env.SERVER_URL ?? "http://localhost:3000";
+const serverUrlSchema = z.url().transform((value) => value.replace(/\/+$/, ""));
+const BASE_URL = serverUrlSchema.parse(
+  buildServerUrl ?? process.env.SERVER_URL ?? "http://localhost:3000",
+);
 
 export const client = hc<AppType>(BASE_URL, {
   headers: getAuthHeaders,

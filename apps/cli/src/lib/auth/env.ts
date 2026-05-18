@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  buildClerkFrontendApi,
+  buildClerkOAuthClientId,
+  buildClerkOAuthRedirectUri,
+} from "../build-env";
 
 const authEnvSchema = z.object({
   CLERK_FRONTEND_API: z.url().transform((value) => value.replace(/\/+$/, "")),
@@ -12,10 +17,10 @@ export function getAuthEnv() {
   return authEnvSchema.parse({
     ...process.env,
     CLERK_FRONTEND_API:
-      BUILD_CLERK_FRONTEND_API ?? process.env.CLERK_FRONTEND_API,
+      buildClerkFrontendApi ?? process.env.CLERK_FRONTEND_API,
     CLERK_OAUTH_CLIENT_ID:
-      BUILD_CLERK_OAUTH_CLIENT_ID ?? process.env.CLERK_OAUTH_CLIENT_ID,
+      buildClerkOAuthClientId ?? process.env.CLERK_OAUTH_CLIENT_ID,
     CLERK_OAUTH_REDIRECT_URI:
-      BUILD_CLERK_OAUTH_REDIRECT_URI ?? process.env.CLERK_OAUTH_REDIRECT_URI,
+      buildClerkOAuthRedirectUri ?? process.env.CLERK_OAUTH_REDIRECT_URI,
   });
 }
