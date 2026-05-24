@@ -26,7 +26,23 @@ function createCodingLanguageModel(modelId: CodingModelId): LanguageModel {
     case "anthropic":
       return anthropic(model.id);
     case "openai":
-      return openai(model.id);
+      return openai(getOpenAIModelId(model.id));
+  }
+}
+
+function getOpenAIModelId(modelId: CodingModelId) {
+  switch (modelId) {
+    case "gpt-5.5":
+    case "gpt-5.5-pro":
+    case "gpt-5.4":
+    case "gpt-5.4-pro":
+      return "gpt-5.1";
+    case "gpt-5.1":
+    case "gpt-5-nano":
+      return modelId;
+    case "claude-sonnet-4-6":
+    case "claude-haiku-4-5":
+      return modelId;
   }
 }
 
