@@ -51,10 +51,6 @@ function getCodingProviderOptions(
       };
     case "claude-haiku-4-5":
     case "gpt-5.1":
-    case "gpt-5.4":
-    case "gpt-5.4-pro":
-    case "gpt-5.5":
-    case "gpt-5.5-pro":
     case "gpt-5-nano":
       return undefined;
   }

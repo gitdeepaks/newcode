@@ -3,14 +3,10 @@ import { z } from "zod";
 export const codingModelProviders = ["anthropic", "openai"] as const;
 
 export const codingModelIds = [
-  "gpt-5.5",
-  "gpt-5.5-pro",
-  "gpt-5.4",
-  "gpt-5.4-pro",
-  "gpt-5.1",
-  "gpt-5-nano",
   "claude-sonnet-4-6",
   "claude-haiku-4-5",
+  "gpt-5.1",
+  "gpt-5-nano",
 ] as const;
 
 export const codingModelProviderSchema = z.enum(codingModelProviders);
@@ -39,65 +35,16 @@ export type CodingModelConfig = z.infer<typeof codingModelSchema>;
 
 export const availableCodingModels = [
   {
-    id: "gpt-5.5",
-    provider: "openai",
-    label: "GPT-5.5",
-    description: "Default OpenAI coding model for agentic coding tasks.",
+    id: "claude-sonnet-4-6",
+    provider: "anthropic",
+    label: "Claude Sonnet 4.6",
+    description: "Default coding model for agentic coding tasks.",
     pricing: {
-      inputUsdPerMillionTokens: 0.625,
-      cachedInputUsdPerMillionTokens: 0.125,
-      outputUsdPerMillionTokens: 5,
+      inputUsdPerMillionTokens: 3,
+      outputUsdPerMillionTokens: 15,
     },
     creditCost: {
-      minimumCredits: 8,
-      usdPerCredit: 0.02,
-      targetGrossMargin: 0.7,
-    },
-  },
-  {
-    id: "gpt-5.5-pro",
-    provider: "openai",
-    label: "GPT-5.5 Pro",
-    description: "Higher-capability OpenAI coding model for complex tasks.",
-    pricing: {
-      inputUsdPerMillionTokens: 15,
-      cachedInputUsdPerMillionTokens: 1.5,
-      outputUsdPerMillionTokens: 120,
-    },
-    creditCost: {
-      minimumCredits: 180,
-      usdPerCredit: 0.02,
-      targetGrossMargin: 0.7,
-    },
-  },
-  {
-    id: "gpt-5.4",
-    provider: "openai",
-    label: "GPT-5.4",
-    description: "OpenAI coding model fallback when newer models are limited.",
-    pricing: {
-      inputUsdPerMillionTokens: 0.625,
-      cachedInputUsdPerMillionTokens: 0.125,
-      outputUsdPerMillionTokens: 5,
-    },
-    creditCost: {
-      minimumCredits: 8,
-      usdPerCredit: 0.02,
-      targetGrossMargin: 0.7,
-    },
-  },
-  {
-    id: "gpt-5.4-pro",
-    provider: "openai",
-    label: "GPT-5.4 Pro",
-    description: "Higher-capability OpenAI fallback for complex tasks.",
-    pricing: {
-      inputUsdPerMillionTokens: 15,
-      cachedInputUsdPerMillionTokens: 1.5,
-      outputUsdPerMillionTokens: 120,
-    },
-    creditCost: {
-      minimumCredits: 180,
+      minimumCredits: 25,
       usdPerCredit: 0.02,
       targetGrossMargin: 0.7,
     },
@@ -114,21 +61,6 @@ export const availableCodingModels = [
     },
     creditCost: {
       minimumCredits: 8,
-      usdPerCredit: 0.02,
-      targetGrossMargin: 0.7,
-    },
-  },
-  {
-    id: "claude-sonnet-4-6",
-    provider: "anthropic",
-    label: "Claude Sonnet 4.6",
-    description: "Anthropic coding model for agentic coding tasks.",
-    pricing: {
-      inputUsdPerMillionTokens: 3,
-      outputUsdPerMillionTokens: 15,
-    },
-    creditCost: {
-      minimumCredits: 25,
       usdPerCredit: 0.02,
       targetGrossMargin: 0.7,
     },
@@ -167,7 +99,7 @@ export const availableCodingModels = [
 ] as const satisfies readonly CodingModelConfig[];
 
 export const DEFAULT_CODING_MODEL_ID =
-  "gpt-5.5" satisfies CodingModelId;
+  "claude-sonnet-4-6" satisfies CodingModelId;
 
 export function getCodingModel(modelId: CodingModelId): CodingModelConfig {
   const model = availableCodingModels.find(
