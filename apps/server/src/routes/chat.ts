@@ -77,9 +77,8 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>()
       return c.json({ error: "Session not found" }, 404);
     }
 
-    const providerNeutralMessages = messages.map(removeProviderMetadata);
     const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
-      messages: providerNeutralMessages,
+      messages,
       tools: allCodingTools,
     });
     if (!validation.success) {
@@ -149,9 +148,7 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>()
       consumeSseStream: consumeStream,
       generateMessageId: generateId,
       onFinish: async ({ responseMessage: rawResponseMessage, isAborted, finishReason }) => {
-        const responseMessage = removeProviderMetadata(
-          rawResponseMessage,
-        ) as CodingAgentUIMessage;
+        const responseMessage = rawResponseMessage as CodingAgentUIMessage;
 
         // Preserve the original UI messages for id reuse on automatic tool
         // roundtrips, but prune older model history before the next LLM call.
@@ -238,9 +235,8 @@ export const chatRoutes = new Hono<AuthVariables & CreditVariables>()
         return c.json({ error: "Session not found" }, 404);
       }
 
-      const providerNeutralMessages = messages.map(removeProviderMetadata);
       const validation = await safeValidateUIMessages<CodingAgentUIMessage>({
-        messages: providerNeutralMessages,
+        messages,
         tools: allCodingTools,
       });
       if (!validation.success) {
@@ -286,29 +282,4 @@ function getMissingProviderApiKey(provider: ReturnType<typeof getCodingModel>["p
     case "openai":
       return process.env.OPENAI_API_KEY ? null : "OPENAI_API_KEY";
   }
-}
-
-function removeProviderMetadata(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(removeProviderMetadata);
-  }
-
-  if (!isPlainObject(value)) {
-    return value;
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (key === "providerMetadata" || key === "providerOptions") {
-      continue;
-    }
-
-    result[key] = removeProviderMetadata(nestedValue);
-  }
-
-  return result;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
