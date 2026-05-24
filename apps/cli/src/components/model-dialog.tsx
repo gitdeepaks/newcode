@@ -30,12 +30,23 @@ export function ModelDialog({ activeModelId, onSelect, onClose }: ModelDialogPro
 
   return (
     <SearchListDialog
-      title="Model"
+      title="Select model"
       options={modelOptions}
-      maxWidth={96}
+      activeOptionId={activeModelId}
+      maxWidth={80}
+      height={16}
       initialActiveIndex={initialActiveIndex}
-      placeholder="Search models"
+      rowLayout="title-metadata"
+      placeholder="Search"
       emptyMessage="No models found"
+      footer={
+        <text>
+          <strong>Connect provider</strong>
+          <span fg="gray"> ctrl+a  </span>
+          <strong>Favorite</strong>
+          <span fg="gray"> ctrl+f</span>
+        </text>
+      }
       onOptionSelect={(option) => {
         onSelect(option.id);
         onClose();

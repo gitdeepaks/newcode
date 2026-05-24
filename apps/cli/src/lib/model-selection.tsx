@@ -7,10 +7,12 @@ import {
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
+import { configService } from "./config";
 
 type ModelSelectionContextValue = {
   modelId: CodingModelId;
@@ -25,12 +27,18 @@ type ModelSelectionProviderProps = {
 const ModelSelectionContext = createContext<ModelSelectionContextValue | null>(null);
 
 export function ModelSelectionProvider({ children }: ModelSelectionProviderProps) {
-  const [modelId, setModelId] = useState<CodingModelId>(DEFAULT_CODING_MODEL_ID);
+  const [modelId, setModelIdState] = useState<CodingModelId>(
+    () => configService.getModelId() ?? DEFAULT_CODING_MODEL_ID,
+  );
   const model = getCodingModel(modelId);
+  const setModelId = useCallback((nextModelId: CodingModelId) => {
+    setModelIdState(nextModelId);
+    configService.setModelId(nextModelId);
+  }, []);
 
   const value = useMemo<ModelSelectionContextValue>(
     () => ({ modelId, model, setModelId }),
-    [model, modelId],
+    [model, modelId, setModelId],
   );
 
   return (

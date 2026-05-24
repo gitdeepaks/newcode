@@ -27,6 +27,7 @@ type SearchListDialogProps<TId extends string = string> = {
   rowLayout?: "columns" | "title-metadata";
   groupColor?: string;
   footer?: ReactNode;
+  activeOptionId?: TId;
   initialActiveIndex?: number;
   placeholder?: string;
   emptyMessage?: string;
@@ -42,6 +43,7 @@ export function SearchListDialog<TId extends string = string>({
   rowLayout = "columns",
   groupColor,
   footer,
+  activeOptionId,
   initialActiveIndex = 0,
   placeholder = "Search",
   emptyMessage = "No options found",
@@ -166,6 +168,7 @@ export function SearchListDialog<TId extends string = string>({
           ) : (
             visibleOptions.map((option, index) => {
               const active = index === activeOptionIndex;
+              const selected = option.id === activeOptionId;
               const textColor = active ? dialogColors.activeOptionText : theme.text;
               const descriptionColor = active
                 ? dialogColors.activeOptionText
@@ -202,7 +205,7 @@ export function SearchListDialog<TId extends string = string>({
                       <>
                         <box flexGrow={1}>
                           <text>
-                            <span fg={textColor}>{option.label}</span>
+                            <span fg={textColor}>{selected ? `• ${option.label}` : `  ${option.label}`}</span>
                           </text>
                         </box>
                         <box width={12} justifyContent="flex-end">
@@ -217,7 +220,7 @@ export function SearchListDialog<TId extends string = string>({
                       <>
                         <box width={16}>
                           <text>
-                            <span fg={textColor}>{option.label}</span>
+                            <span fg={textColor}>{selected ? `• ${option.label}` : `  ${option.label}`}</span>
                           </text>
                         </box>
                         <box width={24}>

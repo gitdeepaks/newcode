@@ -2,9 +2,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { z } from "zod";
+import { codingModelIdSchema, type CodingModelId } from "newcode-ai";
 import { themeNames, type ThemeName } from "./theme-names";
 
 const configSchema = z.object({
+  modelId: codingModelIdSchema.optional(),
   themeName: z.enum(themeNames).optional(),
 });
 
@@ -16,6 +18,18 @@ const configDirectory = process.env.XDG_CONFIG_HOME
 const configPath = join(configDirectory, "config.json");
 
 export const configService = {
+  getModelId() {
+    return readConfig().modelId;
+  },
+
+  setModelId(modelId: CodingModelId) {
+    try {
+      writeConfig({ ...readConfig(), modelId });
+    } catch {
+      // Model selection should still work for the current session if config is not writable.
+    }
+  },
+
   getThemeName() {
     return readConfig().themeName;
   },
