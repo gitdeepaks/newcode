@@ -8,9 +8,9 @@
     "./client": "./src/client.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.75",
-    "@ai-sdk/openai": "^3.0.63",
-    "ai": "^6.0.175",
+    "@ai-sdk/anthropic": "^4.0.1",
+    "@ai-sdk/openai": "^4.0.2",
+    "ai": "^7.0.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

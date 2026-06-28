@@ -214,7 +214,7 @@ export function ChatScreen() {
       if (cancelled) return;
       // Hono RPC widens the message union over JSON, so we narrow back to
       // `CodingAgentUIMessage[]` through the AI package's client helper.
-      const messages = await validateCodingAgentMessages<CodingAgentUIMessage>(
+      const messages = await validateCodingAgentMessages(
         data.messages.map((message) => message.payload),
       );
       if (cancelled) return;

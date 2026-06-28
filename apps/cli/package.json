@@ -19,11 +19,11 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.177",
+    "@ai-sdk/react": "^4.0.5",
     "@newcode/shared": "workspace:*",
     "@opentui/core": "^0.2.1",
     "@opentui/react": "^0.2.1",
-    "ai": "^6.0.175",
+    "ai": "^7.0.4",
     "date-fns": "^4.1.0",
     "hono": "^4.12.17",
     "newcode-ai": "workspace:*",

@@ -5,6 +5,7 @@ import type {
   UIMessage,
 } from "ai";
 import { validateUIMessages } from "ai";
+import type { CodingAgentUIMessage } from "./server";
 import type { Mode } from "./modes";
 import type { ToolOutput } from "./tools/definition";
 import { allCodingTools, getCodingToolHandlersForMode } from "./tools/registry";
@@ -59,14 +60,14 @@ export function createRunTool({
   return runTool;
 }
 
-export async function validateCodingAgentMessages<UI_MESSAGE extends UIMessage>(
+export async function validateCodingAgentMessages(
   messages: unknown[],
-): Promise<UI_MESSAGE[]> {
+): Promise<CodingAgentUIMessage[]> {
   if (messages.length === 0) {
     return [];
   }
 
-  return validateUIMessages<UI_MESSAGE>({ messages, tools: allCodingTools });
+  return validateUIMessages<CodingAgentUIMessage>({ messages, tools: allCodingTools });
 }
 
 // Factory for `useChat`'s `onToolCall`. `addToolOutput` only exists *after*

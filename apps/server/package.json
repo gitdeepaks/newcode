@@ -12,13 +12,13 @@
     "check": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.75",
+    "@ai-sdk/anthropic": "^4.0.1",
     "@clerk/backend": "^3.4.7",
     "@hono/zod-validator": "^0.7.6",
     "@newcode/db": "workspace:*",
     "@newcode/payments": "workspace:*",
     "@newcode/shared": "workspace:*",
-    "ai": "^6.0.175",
+    "ai": "^7.0.4",
     "hono": "^4.10.0",
     "newcode-ai": "workspace:*",
     "zod": "^4.4.3"
